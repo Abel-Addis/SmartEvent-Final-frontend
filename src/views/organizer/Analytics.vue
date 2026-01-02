@@ -52,7 +52,7 @@
         <div v-if="dailySalesChartData" class="card">
           <h3 class="text-h3 font-bold mb-4">Daily Sales Trend</h3>
           <div class="h-80">
-            <LineChart :chart-data="dailySalesChartData" />
+            <LineChart :chart-data="dailySalesChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
 
@@ -60,7 +60,7 @@
         <div v-if="revenueBreakdownChartData" class="card">
           <h3 class="text-h3 font-bold mb-4">Revenue by Event</h3>
           <div class="h-80">
-            <BarChart :chart-data="revenueBreakdownChartData" />
+            <BarChart :chart-data="revenueBreakdownChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
 
@@ -68,7 +68,7 @@
         <div v-if="bookingStatusChartData" class="card">
           <h3 class="text-h3 font-bold mb-4">Booking Status</h3>
           <div class="h-80 flex items-center justify-center">
-            <DoughnutChart :chart-data="bookingStatusChartData" />
+            <DoughnutChart :chart-data="bookingStatusChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
 
@@ -76,7 +76,7 @@
         <div v-if="eventStatusChartData" class="card">
           <h3 class="text-h3 font-bold mb-4">Event Status Distribution</h3>
           <div class="h-80 flex items-center justify-center">
-            <DoughnutChart :chart-data="eventStatusChartData" />
+            <DoughnutChart :chart-data="eventStatusChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
       </div>
@@ -219,7 +219,7 @@
         <div v-if="eventSalesChartData" class="card bg-muted/30">
           <h3 class="text-h4 font-semibold mb-3">Last 7 Days Sales</h3>
           <div class="h-64">
-            <LineChart :chart-data="eventSalesChartData" />
+            <LineChart :chart-data="eventSalesChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
 
@@ -227,7 +227,7 @@
         <div v-if="ticketDistributionChartData" class="card bg-muted/30">
           <h3 class="text-h4 font-semibold mb-3">Ticket Sales Distribution</h3>
           <div class="h-64 flex items-center justify-center">
-            <DoughnutChart :chart-data="ticketDistributionChartData" />
+            <DoughnutChart :chart-data="ticketDistributionChartData" :options="commonOptions" :key="isDark" />
           </div>
         </div>
 
@@ -309,7 +309,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import StatCard from '@/components/StatCard.vue'
 import LineChart from '@/components/charts/LineChart.vue'
 import BarChart from '@/components/charts/BarChart.vue'
@@ -323,40 +323,122 @@ const eventsAnalytics = ref([])
 const selectedEvent = ref(null)
 const bookedUsers = ref([])
 const loadingUsers = ref(false)
+const isDark = ref(false)
 
-// Helper to detect if dark mode is active
-const isDarkMode = () => {
-  if (typeof window === 'undefined') return false
-  return document.documentElement.classList.contains('dark') || 
-         window.matchMedia('(prefers-color-scheme: dark)').matches
+let observer = null
+
+// Reactive dark mode detection
+const updateTheme = () => {
+  if (typeof window === 'undefined') return
+  isDark.value = document.documentElement.classList.contains('dark')
 }
+
+onMounted(async () => {
+  // Initial check
+  updateTheme()
+  
+  // Watch for class changes on html element
+  observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'class') {
+        updateTheme()
+      }
+    })
+  })
+  
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  })
+
+  // Watch for system preference changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateTheme)
+
+  await fetchOverview()
+  await fetchEventsAnalytics()
+})
+
+onUnmounted(() => {
+  if (observer) observer.disconnect()
+  window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', updateTheme)
+})
 
 // Get visible chart colors that work in both light and dark modes
 const getChartColors = () => {
-  const dark = isDarkMode()
+  const dark = isDark.value
   
   // Return distinct, visible colors
   // Light mode: darker, more saturated colors
   // Dark mode: lighter, more vibrant colors
   return {
-    primary: dark ? 'rgba(96, 165, 250, 1)' : 'rgba(37, 99, 235, 1)',      // Blue
+    primary: dark ? 'rgba(96, 165, 250, 1)' : 'rgba(37, 99, 235, 1)',      // Blue (blue-400 : blue-600)
     primaryLight: dark ? 'rgba(96, 165, 250, 0.2)' : 'rgba(37, 99, 235, 0.2)',
-    secondary: dark ? 'rgba(167, 243, 208, 1)' : 'rgba(16, 185, 129, 1)', // Green
-    secondaryLight: dark ? 'rgba(167, 243, 208, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-    accent: dark ? 'rgba(251, 191, 36, 1)' : 'rgba(245, 158, 11, 1)',     // Orange/Yellow
+    secondary: dark ? 'rgba(52, 211, 153, 1)' : 'rgba(16, 185, 129, 1)', // Emerald (emerald-400 : emerald-600)
+    secondaryLight: dark ? 'rgba(52, 211, 153, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+    accent: dark ? 'rgba(251, 191, 36, 1)' : 'rgba(245, 158, 11, 1)',     // Amber (amber-400 : amber-500)
     accentLight: dark ? 'rgba(251, 191, 36, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-    purple: dark ? 'rgba(196, 181, 253, 1)' : 'rgba(139, 92, 246, 1)',   // Purple
+    purple: dark ? 'rgba(196, 181, 253, 1)' : 'rgba(139, 92, 246, 1)',   // Violet
     purpleLight: dark ? 'rgba(196, 181, 253, 0.2)' : 'rgba(139, 92, 246, 0.2)',
-    pink: dark ? 'rgba(251, 113, 133, 1)' : 'rgba(236, 72, 153, 1)',     // Pink
-    pinkLight: dark ? 'rgba(251, 113, 133, 0.2)' : 'rgba(236, 72, 153, 0.2)',
-    teal: dark ? 'rgba(94, 234, 212, 1)' : 'rgba(20, 184, 166, 1)',      // Teal
-    tealLight: dark ? 'rgba(94, 234, 212, 0.2)' : 'rgba(20, 184, 166, 0.2)',
-    red: dark ? 'rgba(252, 165, 165, 1)' : 'rgba(239, 68, 68, 1)',       // Red
-    redLight: dark ? 'rgba(252, 165, 165, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-    gray: dark ? 'rgba(203, 213, 225, 1)' : 'rgba(100, 116, 139, 1)',    // Gray
-    grayLight: dark ? 'rgba(203, 213, 225, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+    pink: dark ? 'rgba(244, 114, 182, 1)' : 'rgba(236, 72, 153, 1)',     // Pink
+    pinkLight: dark ? 'rgba(244, 114, 182, 0.2)' : 'rgba(236, 72, 153, 0.2)',
+    teal: dark ? 'rgba(45, 212, 191, 1)' : 'rgba(20, 184, 166, 1)',      // Teal
+    tealLight: dark ? 'rgba(45, 212, 191, 0.2)' : 'rgba(20, 184, 166, 0.2)',
+    red: dark ? 'rgba(248, 113, 113, 1)' : 'rgba(239, 68, 68, 1)',       // Red
+    redLight: dark ? 'rgba(248, 113, 113, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+    gray: dark ? 'rgba(203, 213, 225, 1)' : 'rgba(100, 116, 139, 1)',    // Slate
+    grayLight: dark ? 'rgba(203, 213, 225, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+    text: dark ? '#f1f5f9' : '#0f172a',  // slate-100 : slate-900
+    grid: dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+    tooltipBg: dark ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+    tooltipText: dark ? '#f1f5f9' : '#0f172a'
   }
 }
+
+// Common Chart Options with reactive colors
+const commonOptions = computed(() => {
+  const colors = getChartColors()
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: colors.text
+        }
+      },
+      tooltip: {
+        backgroundColor: colors.tooltipBg,
+        titleColor: colors.tooltipText,
+        bodyColor: colors.tooltipText,
+        borderColor: colors.grid,
+        borderWidth: 1,
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: true
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: colors.grid,
+          borderColor: colors.grid
+        },
+        ticks: {
+          color: colors.text
+        }
+      },
+      y: {
+        grid: {
+          color: colors.grid,
+          borderColor: colors.grid
+        },
+        ticks: {
+          color: colors.text
+        }
+      }
+    }
+  }
+})
 
 // Chart data computed properties
 const dailySalesChartData = computed(() => {
@@ -428,7 +510,7 @@ const revenueBreakdownChartData = computed(() => {
         label: 'Revenue ($)',
         data: sortedEvents.map(item => item.revenue),
         backgroundColor: barColors.slice(0, sortedEvents.length),
-        borderColor: isDarkMode() ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+        borderColor: colors.grid,
         borderWidth: 1
       }
     ]
@@ -439,7 +521,6 @@ const bookingStatusChartData = computed(() => {
   if (!overview.value) return null
 
   const colors = getChartColors()
-  const dark = isDarkMode()
 
   return {
     labels: ['Confirmed', 'Pending', 'Cancelled'],
@@ -455,7 +536,7 @@ const bookingStatusChartData = computed(() => {
           colors.accent,     // Orange/Yellow for pending
           colors.red         // Red for cancelled
         ],
-        borderColor: dark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+        borderColor: colors.grid,
         borderWidth: 2
       }
     ]
@@ -466,7 +547,6 @@ const eventStatusChartData = computed(() => {
   if (!overview.value) return null
 
   const colors = getChartColors()
-  const dark = isDarkMode()
 
   return {
     labels: ['Published', 'Draft'],
@@ -477,7 +557,7 @@ const eventStatusChartData = computed(() => {
           colors.primary,  // Blue for published
           colors.gray     // Gray for draft
         ],
-        borderColor: dark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+        borderColor: colors.grid,
         borderWidth: 2
       }
     ]
@@ -516,7 +596,6 @@ const ticketDistributionChartData = computed(() => {
   }
 
   const colors = getChartColors()
-  const dark = isDarkMode()
   const chartColors = [
     colors.primary,
     colors.secondary,
@@ -534,7 +613,7 @@ const ticketDistributionChartData = computed(() => {
       {
         data: selectedEvent.value.tickets.map(t => t.sold),
         backgroundColor: chartColors.slice(0, selectedEvent.value.tickets.length),
-        borderColor: dark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.8)',
+        borderColor: colors.grid,
         borderWidth: 2
       }
     ]
@@ -648,10 +727,5 @@ const getStatusClass = (status) => {
   }
   return 'bg-muted text-muted-foreground'
 }
-
-// Fetch data on mount
-onMounted(async () => {
-  await fetchOverview()
-  await fetchEventsAnalytics()
-})
 </script>
+

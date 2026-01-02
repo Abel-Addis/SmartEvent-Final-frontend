@@ -1,4 +1,4 @@
-import apiClient from './api'
+import apiClient from "./api";
 
 export const categoryService = {
   /**
@@ -6,8 +6,21 @@ export const categoryService = {
    * @returns {Promise} List of categories
    */
   async getAllCategories() {
-    const response = await apiClient.get('/event-categories/get-all-categories')
-    return response.data
+    const response = await apiClient.get(
+      "/event-categories/get-all-categories"
+    );
+    return response.data;
+  },
+
+  /**
+   * Get all event categories with event count
+   * @returns {Promise} List of categories with count
+   */
+  async getCategoriesWithCount() {
+    const response = await apiClient.get(
+      "/event-categories/categories-with-count"
+    );
+    return response.data;
   },
 
   /**
@@ -16,8 +29,10 @@ export const categoryService = {
    * @returns {Promise}
    */
   async getCategoryById(categoryId) {
-    const response = await apiClient.get(`/event-category/get-category-by-id/${categoryId}`)
-    return response.data
+    const response = await apiClient.get(
+      `/event-category/get-category-by-id/${categoryId}`
+    );
+    return response.data;
   },
 
   /**
@@ -25,8 +40,11 @@ export const categoryService = {
    * @param {{ name: string, description: string }} payload
    */
   async addCategory(payload) {
-    const response = await apiClient.post('/event-categories/add-category', payload)
-    return response.data
+    const response = await apiClient.post(
+      "/event-categories/add-category",
+      payload
+    );
+    return response.data;
   },
 
   /**
@@ -35,9 +53,12 @@ export const categoryService = {
    * @param {{ name: string, description: string }} payload
    */
   async updateCategory(categoryId, payload) {
-    const query = new URLSearchParams({ CategoryId: categoryId })
-    const response = await apiClient.patch(`/event-categories/Update-Category?${query}`, payload)
-    return response.data
+    const query = new URLSearchParams({ CategoryId: categoryId });
+    const response = await apiClient.patch(
+      `/event-categories/Update-Category?${query}`,
+      payload
+    );
+    return response.data;
   },
 
   /**
@@ -45,8 +66,10 @@ export const categoryService = {
    * @param {string} categoryId
    */
   async deleteCategory(categoryId) {
-    const query = new URLSearchParams({ CategoryId: categoryId })
-    const response = await apiClient.delete(`/event-categories/Delete-Category?${query}`)
-    return response.data
+    const query = new URLSearchParams({ CategoryId: categoryId });
+    const response = await apiClient.delete(
+      `/event-categories/Delete-Category?${query}`
+    );
+    return response.data;
   },
-}
+};

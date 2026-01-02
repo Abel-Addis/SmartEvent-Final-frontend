@@ -25,9 +25,7 @@
         <nav-item to="/organizer/create-event" icon="➕" label="Create Event" />
         <nav-item to="/organizer/events" icon="📋" label="My Events" :exact="true" />
         <nav-item to="/organizer/analytics" icon="📈" label="Analytics" />
-        <nav-item to="/organizer/checkin" icon="✓" label="Check-in" />
         <nav-item to="/organizer/gate-persons" icon="🚪" label="Gate Persons" />
-        <nav-item to="/organizer/finance" icon="💰" label="Finance" />
         <nav-item to="/organizer/credits" icon="💎" label="Credits" />
         <nav-item to="/organizer/boosts" icon="🚀" label="Boosts" />
       </nav>

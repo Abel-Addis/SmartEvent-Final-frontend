@@ -29,12 +29,18 @@ export const eventSchema = yup.object({
 
   ticketSalesStart: yup
     .date()
-    .required("Ticket sales start date is required")
+    .transform((value, originalValue) => {
+      return originalValue === "" ? undefined : value;
+    })
+    .required("Please select when ticket sales start")
     .min(new Date(), "Ticket sales start date must be in the future"),
 
   ticketSalesEnd: yup
     .date()
-    .required("Ticket sales end date is required")
+    .transform((value, originalValue) => {
+      return originalValue === "" ? undefined : value;
+    })
+    .required("Please select when ticket sales end")
     .min(
       yup.ref("ticketSalesStart"),
       "Ticket sales end date must be after ticket sales start date"
@@ -42,7 +48,10 @@ export const eventSchema = yup.object({
 
   startDate: yup
     .date()
-    .required("Event start date is required")
+    .transform((value, originalValue) => {
+      return originalValue === "" ? undefined : value;
+    })
+    .required("Please select the event start date")
     .min(
       yup.ref("ticketSalesStart"),
       "Event start date must be after ticket sales start"
@@ -50,12 +59,21 @@ export const eventSchema = yup.object({
 
   endDate: yup
     .date()
-    .required("Event end date is required")
+    .transform((value, originalValue) => {
+      return originalValue === "" ? undefined : value;
+    })
+    .required("Please select the event end date")
     .min(yup.ref("startDate"), "Event end date must be after start date"),
 
   totalCapacity: yup
     .number()
-    .required("Total capacity is required")
+    .transform((value, originalValue) => {
+      // Transform empty string to undefined so required() can catch it
+      return originalValue === "" ? undefined : value;
+    })
+    .required("Please enter the total capacity")
+    .positive("Capacity must be a positive number")
+    .integer("Capacity must be a whole number")
     .min(1, "Capacity must be at least 1")
     .max(1000000, "Capacity seems unrealistic"),
 

@@ -159,7 +159,9 @@
               </span>
             </td>
             <td class="px-4 py-3 flex gap-2">
+              <!-- Only show Bookings button for Attendees -->
               <button
+                v-if="user.role === 'Attendee'"
                 class="btn-outline px-3 py-1 text-sm rounded-lg"
                 @click="openBookingsModal(user)"
               >
@@ -242,14 +244,28 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="booking in userBookings" :key="booking.id" class="border-b border-border/50 hover:bg-muted/30">
-                <td class="py-3 px-3 font-medium">{{ booking.eventName }}</td>
-                <td class="py-3 px-3 text-sm text-muted-foreground">{{ formatDate(booking.date) }}</td>
-                <td class="py-3 px-3 text-sm">{{ booking.ticketTypeName }}</td>
-                <td class="py-3 px-3 text-sm">{{ booking.quantity }}</td>
-                <td class="py-3 px-3 text-sm font-bold">{{ booking.totalPrice }} ETB</td>
+              <tr v-for="booking in userBookings" :key="booking.bookingId" class="border-b border-border/50 hover:bg-muted/30">
+                <td class="py-3 px-3 font-medium">{{ booking.eventTitle }}</td>
+                <td class="py-3 px-3 text-sm text-muted-foreground">{{ formatDate(booking.bookingDate) }}</td>
+                <td class="py-3 px-3 text-sm">
+                  <div v-if="booking.tickets && booking.tickets.length > 0">
+                    <div v-for="(ticket, idx) in booking.tickets" :key="idx" class="text-xs">
+                      {{ ticket.ticketTypeName }}
+                    </div>
+                  </div>
+                  <span v-else class="text-muted-foreground">-</span>
+                </td>
+                <td class="py-3 px-3 text-sm">
+                  {{ booking.tickets ? booking.tickets.length : 0 }}
+                </td>
+                <td class="py-3 px-3 text-sm font-bold">{{ booking.totalAmount }} ETB</td>
                 <td class="py-3 px-3">
-                  <span :class="['px-2 py-0.5 rounded text-xs', booking.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700']">
+                  <span :class="[
+                    'px-2 py-0.5 rounded text-xs',
+                    booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+                    booking.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-gray-100 text-gray-700'
+                  ]">
                     {{ booking.status }}
                   </span>
                 </td>

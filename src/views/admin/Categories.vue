@@ -168,13 +168,13 @@ const defaultIcon = (name = '') => {
 const fetchCategories = async () => {
   loading.value = true
   try {
-    const data = await categoryService.getAllCategories()
+    const data = await categoryService.getCategoriesWithCount()
     categories.value = (data || []).map(c => ({
       id: c.id,
       name: c.name,
       description: c.description || 'No description provided',
       icon: '📂', // backend does not store icon; keep UI consistent
-      events: c.events || 0,
+      events: c.eventCount || 0, // backend returns eventCount
       isDefault: c.name ? defaultCategoryNames.has(c.name.toLowerCase()) : false,
     }))
   } catch (err) {

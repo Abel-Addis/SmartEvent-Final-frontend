@@ -551,6 +551,9 @@ const clearFormState = () => {
   localStorage.removeItem('createEventFormState')
 }
 
+// Telegram publishing checkbox (declared here before watch)
+const postToTelegram = ref(false)
+
 // Watch for changes and save to localStorage
 watch([currentStep, createdEventId, title, description, categoryId, venue, location, 
        ticketSalesStart, ticketSalesEnd, startDate, endDate, totalCapacity,
@@ -843,8 +846,6 @@ const savePricingRules = async () => {
 }
 
 // Step 4: Publish or save
-const postToTelegram = ref(false)
-
 const publishNow = async () => {
   loading.value = true
   errorMessage.value = ''

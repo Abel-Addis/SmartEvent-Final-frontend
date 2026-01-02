@@ -82,6 +82,30 @@
                     <span class="font-medium">Phone:</span> {{ org.phoneNumber }}
                   </p>
                 </div>
+                <!-- KYC Images -->
+                <div v-if="org.kycIdDocument" class="mt-3 pt-3 border-t border-border">
+                  <p class="text-xs font-medium mb-2">KYC Documents:</p>
+                  <div class="flex gap-2">
+                    <div v-if="parseKycDocument(org.kycIdDocument)?.FrontImage" class="flex-1">
+                      <p class="text-xs text-muted-foreground mb-1">Front</p>
+                      <img 
+                        :src="parseKycDocument(org.kycIdDocument).FrontImage" 
+                        alt="KYC Front" 
+                        class="w-full h-32 object-cover rounded border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                        @click="openImageModal(parseKycDocument(org.kycIdDocument).FrontImage, 'KYC Front - ' + org.fullName)"
+                      >
+                    </div>
+                    <div v-if="parseKycDocument(org.kycIdDocument)?.BackImage" class="flex-1">
+                      <p class="text-xs text-muted-foreground mb-1">Back</p>
+                      <img 
+                        :src="parseKycDocument(org.kycIdDocument).BackImage" 
+                        alt="KYC Back" 
+                        class="w-full h-32 object-cover rounded border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                        @click="openImageModal(parseKycDocument(org.kycIdDocument).BackImage, 'KYC Back - ' + org.fullName)"
+                      >
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="flex gap-2">
                 <button
@@ -299,6 +323,24 @@
         </div>
       </div>
     </div>
+
+    <!-- Image Modal -->
+    <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" @click="closeImageModal">
+      <div class="relative max-w-4xl max-h-[90vh]">
+        <button 
+          class="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl font-bold"
+          @click="closeImageModal"
+        >
+          ✕
+        </button>
+        <img 
+          :src="selectedImage" 
+          :alt="selectedImageTitle" 
+          class="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+        >
+        <p class="text-white text-center mt-2">{{ selectedImageTitle }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -320,11 +362,27 @@ const orgEvents = ref([])
 const eventsLoading = ref(false)
 const selectedOrg = ref(null)
 
+// Image Modal State
+const showImageModal = ref(false)
+const selectedImage = ref('')
+const selectedImageTitle = ref('')
+
 const statusFilters = [
   { label: 'Pending', value: 'pending' },
   { label: 'All Organizers', value: 'all' },
   { label: 'Approved', value: 'approved' },
 ]
+
+// Parse KYC document JSON
+const parseKycDocument = (kycDocString) => {
+  if (!kycDocString) return null
+  try {
+    return JSON.parse(kycDocString)
+  } catch (error) {
+    console.error('Failed to parse KYC document:', error)
+    return null
+  }
+}
 
 // Computed properties from store
 const pendingOrganizers = computed(() => adminStore.pendingOrganizers)
@@ -423,6 +481,20 @@ const closeEventsModal = () => {
     selectedOrg.value = null
     orgEvents.value = []
   }, 300)
+}
+
+// Open Image Modal
+const openImageModal = (imageUrl, title) => {
+  selectedImage.value = imageUrl
+  selectedImageTitle.value = title
+  showImageModal.value = true
+}
+
+// Close Image Modal
+const closeImageModal = () => {
+  showImageModal.value = false
+  selectedImage.value = ''
+  selectedImageTitle.value = ''
 }
 
 // Format date
