@@ -127,7 +127,6 @@ const initMap = (userLocation = null) => {
       maxZoom: 19
     }).addTo(map)
 
-    // Fix for default marker icon issue in Leaflet with bundlers
     delete L.Icon.Default.prototype._getIconUrl
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -154,14 +153,11 @@ const initMap = (userLocation = null) => {
       const { lat, lng } = e.latlng
       selectedLocation.value = { lat, lng }
       addMarker(lat, lng)
-
-      // Emit formatted value as "lat|lng"
       emit('update:modelValue', `${lat}|${lng}`)
     })
 
     mapReady.value = true
 
-    // Force map to recalculate size after a short delay
     setTimeout(() => {
       if (map) {
         map.invalidateSize()
@@ -175,19 +171,15 @@ const initMap = (userLocation = null) => {
 const addMarker = (lat, lng) => {
   if (!L || !map) return
 
-  // Remove existing marker if any
   if (marker) {
     map.removeLayer(marker)
   }
-
-  // Add new marker
   marker = L.marker([lat, lng]).addTo(map)
   marker.bindPopup(`Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`).openPopup()
 }
 </script>
 
 <style scoped>
-/* Ensure map container has proper height */
 #map {
   z-index: 0;
 }

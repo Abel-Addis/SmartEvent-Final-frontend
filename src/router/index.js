@@ -114,19 +114,9 @@ const routes = [
         component: () => import("../views/organizer/Analytics.vue"),
       },
       {
-        path: "checkin",
-        name: "CheckIn",
-        component: () => import("../views/organizer/CheckIn.vue"),
-      },
-      {
         path: "gate-persons",
         name: "GatePersons",
         component: () => import("../views/organizer/GatePersons.vue"),
-      },
-      {
-        path: "finance",
-        name: "Finance",
-        component: () => import("../views/organizer/Finance.vue"),
       },
       {
         path: "credits",
