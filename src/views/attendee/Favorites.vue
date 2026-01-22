@@ -9,47 +9,72 @@
       </p>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="card text-center py-12">
+      <div class="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+      <p class="text-muted-foreground">Loading your favorites...</p>
+    </div>
+
+    <!-- Favorites Grid -->
     <div
-      v-if="favoriteEvents.length > 0"
+      v-else-if="favoriteEvents.length > 0"
       class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
     >
       <div
         v-for="event in favoriteEvents"
-        :key="event.id"
-        class="card group cursor-pointer hover:shadow-lg transition-shadow relative"
+        :key="event.eventId"
+        class="card group cursor-pointer hover:shadow-lg transition-all duration-200 relative"
+        @click="navigateToEvent(event.eventId)"
       >
         <button
-          class="absolute top-3 right-3 p-2 bg-destructive/10 hover:bg-destructive/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-          @click="removeFavorite(event.id)"
+          class="absolute top-3 right-3 z-10 p-2 bg-destructive/90 hover:bg-destructive rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+          @click.stop="handleRemoveFavorite(event.eventId)"
+          title="Remove from favorites"
         >
-          <span class="text-lg">✕</span>
+          <span class="text-lg">❤️</span>
         </button>
         
-        <div class="h-40 bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center rounded-lg mb-4">
-          <span class="text-5xl">🎉</span>
+        <!-- Event Image -->
+        <div 
+          class="relative h-40 rounded-2xl flex items-center justify-center overflow-hidden border border-border mb-4"
+          :style="event.bannerImageUrl ? `background-image: url(${event.bannerImageUrl}); background-size: cover; background-position: center;` : ''"
+        >
+          <div v-if="!event.bannerImageUrl" class="bg-gradient-to-br from-primary/20 to-accent/20 w-full h-full flex items-center justify-center">
+            <span class="text-5xl">🎉</span>
+          </div>
+          <div v-else class="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent" />
+          
+          <!-- Category Badge -->
+          <div class="absolute top-2 left-2 px-2 py-1 bg-card/90 backdrop-blur-sm rounded-md text-xs font-medium border border-border">
+            {{ event.categoryName || 'Event' }}
+          </div>
         </div>
         
-        <h4 class="text-h4 font-semibold mb-1">
+        <h4 class="text-h4 font-semibold mb-1 line-clamp-1">
           {{ event.title }}
         </h4>
-        <p class="text-muted-foreground text-sm mb-3">
-          {{ event.description }}
+        <p class="text-muted-foreground text-sm mb-3 line-clamp-2">
+          {{ event.description || 'No description available' }}
         </p>
         
         <div class="flex items-center justify-between text-sm pt-3 border-t border-border">
-          <span class="text-muted-foreground">📅 {{ event.date }}</span>
-          <span class="text-primary font-semibold">{{ event.price }}</span>
+          <span class="text-muted-foreground flex items-center gap-1">
+            <span>📅</span>
+            {{ formatDate(event.startDate) }}
+          </span>
+          <span class="text-primary font-semibold">
+            {{ event.lowestTicketPrice > 0 ? formatCurrency(event.lowestTicketPrice) : 'Free' }}
+          </span>
         </div>
         
-        <router-link
-          :to="`/dashboard/events/1`"
-          class="btn-primary w-full mt-4 py-2 text-center text-sm"
-        >
-          View Details
-        </router-link>
+        <div class="mt-3 text-xs text-muted-foreground flex items-center gap-1">
+          <span>📍</span>
+          {{ event.venue || 'Venue TBA' }}
+        </div>
       </div>
     </div>
 
+    <!-- Empty State -->
     <div
       v-else
       class="card text-center py-12"
@@ -74,15 +99,68 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useFavoritesStore } from '@/stores/favorites'
+import { attendeeService } from '@/services/attendeeService'
 
-const favoriteEvents = ref([
-  { id: 1, title: 'Summer Music Festival', description: 'Live music from top artists', date: 'Aug 15, 2025', price: 'From $50' },
-  { id: 2, title: 'Tech Conference 2025', description: 'Latest in web development', date: 'Sep 20, 2025', price: 'From $100' },
-  { id: 3, title: 'Jazz Night', description: 'Smooth jazz performances', date: 'Aug 25, 2025', price: 'From $30' },
-])
+const router = useRouter()
+const favoritesStore = useFavoritesStore()
 
-const removeFavorite = (id) => {
-  favoriteEvents.value = favoriteEvents.value.filter(event => event.id !== id)
+const allEvents = ref([])
+const loading = ref(false)
+
+// Computed property to filter events by favorite IDs
+const favoriteEvents = computed(() => {
+  const favoriteIds = favoritesStore.getFavoriteIds
+  return allEvents.value.filter(event => 
+    favoriteIds.includes(String(event.eventId))
+  )
+})
+
+onMounted(async () => {
+  await fetchEvents()
+})
+
+const fetchEvents = async () => {
+  loading.value = true
+  try {
+    // Fetch all active events
+    const result = await attendeeService.searchEvents({
+      PageNumber: 1,
+      PageSize: 100 // Get a large set to ensure we have all favorited events
+    })
+    allEvents.value = result.items || []
+  } catch (error) {
+    console.error('Failed to fetch events:', error)
+    allEvents.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleRemoveFavorite = (eventId) => {
+  favoritesStore.removeFavorite(eventId)
+}
+
+const navigateToEvent = (eventId) => {
+  router.push(`/dashboard/events/${eventId}`)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'Date TBA'
+  return new Date(dateString).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  })
+}
+
+const formatCurrency = (val) => {
+  return new Intl.NumberFormat('en-ET', { 
+    style: 'currency', 
+    currency: 'ETB' 
+  }).format(val)
 }
 </script>
+

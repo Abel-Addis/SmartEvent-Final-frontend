@@ -25,7 +25,7 @@ export const ticketScanService = {
     if (params.to) queryParams.append("to", params.to);
 
     const response = await api.get(
-      `/ticket-scan/eventScanLogs/${eventId}?${queryParams.toString()}`
+      `/ticket-scan/eventScanLogs/${eventId}?${queryParams.toString()}`,
     );
     return response.data;
   },
@@ -44,7 +44,6 @@ export const ticketScanService = {
    * @param {string} gatePersonId
    */
   async getLogByUserId(gatePersonId) {
-    // Correct endpoint based on analysis: /api/ticket-scan/getLogByUserId?gatePersonId=...
     const response = await api.get(`/ticket-scan/getLogByUserId`, {
       params: { gatePersonId },
     });

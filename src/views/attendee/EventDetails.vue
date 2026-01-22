@@ -49,17 +49,6 @@
               {{ event.description || event.Description || 'No description available.' }}
             </p>
           </div>
-
-          <div>
-            <h3 class="text-h3 font-bold mb-3">
-              What's Included
-            </h3>
-            <ul class="space-y-2 text-lg">
-              <li>✓ Live Performance</li>
-              <li>✓ Interactive Sessions</li>
-              <li>✓ Networking Opportunities</li>
-            </ul>
-          </div>
         </div>
 
         <div class="card h-fit">
@@ -248,17 +237,21 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { attendeeService } from '@/services/attendeeService'
 import { feedbackService } from '@/services/feedbackService'
+import { useFavoritesStore } from '@/stores/favorites'
 import FeedbackModal from '@/components/FeedbackModal.vue'
 import MapLocationDisplay from '@/components/MapLocationDisplay.vue'
 
 const route = useRoute()
 const eventId = route.params.id
+const favoritesStore = useFavoritesStore()
 
 const event = ref(null)
 const loading = ref(true)
 const activeTab = ref('Overview')
-const isFavorite = ref(false)
 const tabs = ['Overview', 'Schedule', 'Location', 'Organizer']
+
+// Use computed property for favorite status from store
+const isFavorite = computed(() => favoritesStore.isFavorite(eventId))
 
 // Feedback State
 const userReview = ref(null)
@@ -397,7 +390,7 @@ const deleteReview = async () => {
 }
 
 const toggleFavorite = () => {
-  isFavorite.value = !isFavorite.value
+  favoritesStore.toggleFavorite(eventId)
 }
 
 const formatCurrency = (val) => {

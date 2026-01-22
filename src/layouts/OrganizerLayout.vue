@@ -10,10 +10,10 @@
         <router-link to="/" class="flex items-center gap-3">
           <div
             class="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
-            V
+            C
           </div>
           <div class="leading-tight">
-            <p class="text-sm font-semibold text-sidebar-foreground">Vo</p>
+            <p class="text-sm font-semibold text-sidebar-foreground">Convene</p>
             <p class="text-xs text-muted-foreground">Organizer</p>
           </div>
         </router-link>
@@ -31,24 +31,28 @@
       </nav>
 
       <div class="p-4 border-t border-sidebar-border">
-        <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer group">
-          <div
-            class="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-semibold text-foreground">
-            O
+        <!-- User Info -->
+        <div class="flex items-center gap-3 px-3 py-2 mb-3">
+          <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+            {{ authStore.user?.fullName?.charAt(0)?.toUpperCase() || 'O' }}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate text-sidebar-foreground">Organizer</div>
-            <div class="text-xs text-muted-foreground truncate">team@vo.com</div>
+            <div class="text-sm font-medium text-sidebar-foreground truncate">
+              {{ authStore.user?.fullName || 'Organizer' }}
+            </div>
+            <div class="text-xs text-muted-foreground truncate">
+              {{ authStore.user?.email || 'organizer@convene.com' }}
+            </div>
           </div>
-          <button 
-            @click="authStore.logout()" 
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-sidebar-accent hover:border-accent text-muted-foreground hover:text-destructive transition-all duration-200 active:scale-[0.98] group" 
-            title="Logout"
-          >
-            <span class="text-base group-hover:scale-110 transition-transform">🚪</span>
-            <span class="text-sm font-medium">Logout</span>
-          </button>
         </div>
+        
+        <!-- Logout Button -->
+        <button 
+          @click="authStore.logout()" 
+          class="btn-outline w-full py-2 text-sm text-muted-foreground hover:text-destructive hover:border-destructive/30" 
+        >
+          Logout
+        </button>
       </div>
     </aside>
 
@@ -70,11 +74,6 @@
           </div>
 
           <div class="flex items-center gap-2 sm:gap-3">
-            <div class="relative hidden sm:block">
-              <input type="text" placeholder="Search events" class="input-field w-56 pl-9 pr-3">
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">⌕</span>
-            </div>
-
             <div class="flex items-center gap-2">
               <ThemeToggle />
               <router-link to="/organizer/notifications"
@@ -105,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import NavItem from '../components/NavItem.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
 import { useAuthStore } from '../stores/auth'
@@ -120,7 +119,14 @@ const unreadCount = computed(() => notificationStore.unreadCount)
 
 // Fetch notifications on mount
 onMounted(() => {
-  notificationStore.fetchNotifications()
+  if (authStore.user) {
+    notificationStore.fetchNotifications()
+    notificationStore.connect()
+  }
+})
+
+onUnmounted(() => {
+  notificationStore.disconnect()
 })
 </script>
 

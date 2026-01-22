@@ -20,7 +20,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response interceptor for error handling
@@ -28,10 +28,13 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Unauthorized - clear token and redirect to login
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+      // Unauthorized - only redirect if not already on the login page
+      // This prevents immediate refresh on failed login attempts
+      if (!window.location.pathname.includes("/login")) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     } else if (
       error.code === "ERR_NETWORK" ||
       error.message === "Network Error" ||
@@ -42,7 +45,7 @@ apiClient.interceptors.response.use(
         "No Internet Connection. Please check your network settings and try again.";
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default apiClient;

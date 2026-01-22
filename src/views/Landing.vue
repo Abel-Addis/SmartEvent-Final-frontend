@@ -12,9 +12,9 @@
       <div class="mx-auto rounded-full border border-white/5 bg-white/[0.03] backdrop-blur-xl shadow-2xl px-6 py-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-indigo-500/20">
-            V
+            C
           </div>
-          <span class="font-semibold tracking-tight text-white/90">EventHub</span>
+          <span class="font-semibold tracking-tight text-white/90">Convene</span>
         </div>
 
         <!-- Desktop Links -->
@@ -71,7 +71,7 @@
     <section id="features" class="relative z-10 py-32 border-t border-white/5">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-20">
-          <h2 class="text-3xl font-bold mb-4">Why EventHub?</h2>
+          <h2 class="text-3xl font-bold mb-4">Why Convene?</h2>
           <p class="text-slate-400 max-w-xl mx-auto">Precision tools for organizers, curated experiences for attendees.</p>
         </div>
 
@@ -186,9 +186,9 @@
       <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-2">
            <div class="w-6 h-6 rounded bg-white/10 flex items-center justify-center font-bold text-xs text-white">
-            V
+            C
           </div>
-          <span class="text-sm font-medium text-slate-400">© 2025 EventHub</span>
+          <span class="text-sm font-medium text-slate-400">© 2025 Convene</span>
         </div>
 
         <div class="flex gap-8 text-sm text-slate-500">

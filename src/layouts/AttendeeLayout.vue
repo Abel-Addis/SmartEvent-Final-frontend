@@ -15,10 +15,10 @@
       <div class="h-16 px-5 border-b border-sidebar-border flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center font-bold shadow-lg shadow-primary/30">
-            N
+            C
           </div>
           <div class="leading-tight">
-            <p class="text-sm font-semibold text-sidebar-foreground">NerdSpace</p>
+            <p class="text-sm font-semibold text-sidebar-foreground">Convene</p>
             <p class="text-xs text-muted-foreground">Discover</p>
           </div>
         </router-link>
@@ -33,23 +33,28 @@
       </nav>
 
       <div class="p-4 border-t border-sidebar-border bg-sidebar/70 backdrop-blur">
-        <div class="flex items-center gap-3 p-3 rounded-xl glass-muted hover:border-accent transition-colors cursor-pointer group">
-          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center text-sm font-semibold">
-            U
+        <!-- User Info -->
+        <div class="flex items-center gap-3 px-3 py-2 mb-3">
+          <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
+            {{ authStore.user?.fullName?.charAt(0)?.toUpperCase() || 'U' }}
           </div>
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-semibold truncate text-sidebar-foreground">You</div>
-            <div class="text-xs text-muted-foreground truncate">user@nerdspace.com</div>
+            <div class="text-sm font-medium text-sidebar-foreground truncate">
+              {{ authStore.user?.fullName || 'User' }}
+            </div>
+            <div class="text-xs text-muted-foreground truncate">
+              {{ authStore.user?.email || 'user@convene.com' }}
+            </div>
           </div>
-          <button 
-            @click="authStore.logout()" 
-            class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-sidebar-accent hover:border-accent text-muted-foreground hover:text-destructive transition-all duration-200 active:scale-[0.98] group backdrop-blur-sm" 
-            title="Logout"
-          >
-            <span class="text-base group-hover:scale-110 transition-transform">🚪</span>
-            <span class="text-sm font-medium">Logout</span>
-          </button>
         </div>
+        
+        <!-- Logout Button -->
+        <button 
+          @click="authStore.logout()" 
+          class="btn-outline w-full py-2 text-sm text-muted-foreground hover:text-destructive hover:border-destructive/30" 
+        >
+          Logout
+        </button>
       </div>
     </aside>
 
@@ -73,15 +78,6 @@
           </div>
 
           <div class="flex items-center gap-2 sm:gap-3">
-            <div class="relative hidden sm:block">
-              <input
-                type="text"
-                placeholder="Search events"
-                class="input-field w-56 bg-card/70 pl-10 pr-3"
-              >
-              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">⌕</span>
-            </div>
-
             <div class="flex items-center gap-2 pl-2">
               <div class="hidden sm:flex items-center gap-2 px-2 py-1 rounded-full bg-muted/50 border border-border">
                 <span class="text-[10px] px-1 py-0.5 rounded bg-sidebar-accent text-sidebar-foreground font-semibold">For you</span>
@@ -120,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import NavItem from '@/components/NavItem.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -131,6 +127,13 @@ const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
 
 onMounted(() => {
-  notificationStore.fetchNotifications()
+  if (authStore.user) {
+    notificationStore.fetchNotifications()
+    notificationStore.connect()
+  }
+})
+
+onUnmounted(() => {
+  notificationStore.disconnect()
 })
 </script>

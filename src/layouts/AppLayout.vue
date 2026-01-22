@@ -4,7 +4,7 @@
     <aside class="hidden lg:flex w-64 bg-card border-r border-border flex-col">
       <div class="p-6 border-b border-border">
         <h1 class="text-h4 font-bold text-primary">
-          EventHub
+          Convene
         </h1>
       </div>
       <nav class="flex-1 overflow-y-auto p-4 space-y-2">

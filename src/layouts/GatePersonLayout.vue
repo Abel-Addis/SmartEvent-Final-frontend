@@ -12,10 +12,10 @@
                 <router-link to="/" class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center font-bold shadow-lg shadow-primary/30">
-                        S
+                        C
                     </div>
                     <div class="leading-tight">
-                        <p class="text-sm font-semibold text-sidebar-foreground">SmartEvent</p>
+                        <p class="text-sm font-semibold text-sidebar-foreground">Convene</p>
                         <p class="text-xs text-muted-foreground">Scanner</p>
                     </div>
                 </router-link>
@@ -27,25 +27,28 @@
             </nav>
 
             <div class="p-4 border-t border-sidebar-border bg-sidebar/70 backdrop-blur">
-                <div
-                    class="flex items-center gap-3 p-3 rounded-xl glass-muted hover:border-accent transition-colors cursor-pointer group">
-                    <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center text-sm font-semibold">
+                <!-- User Info -->
+                <div class="flex items-center gap-3 px-3 py-2 mb-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center text-sm font-bold shadow-md">
                         {{ userInitial }}
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-semibold truncate text-sidebar-foreground">{{ userInfo?.fullName ||
-                            'Gate Person' }}</div>
-                        <div class="text-xs text-muted-foreground truncate">{{ userInfo?.email ||
-                            'scanner@smartevent.com' }}</div>
+                        <div class="text-sm font-medium text-sidebar-foreground truncate">
+                            {{ userInfo?.fullName || 'Gate Person' }}
+                        </div>
+                        <div class="text-xs text-muted-foreground truncate">
+                            {{ userInfo?.email || 'scanner@convene.com' }}
+                        </div>
                     </div>
-                    <button @click="handleLogout"
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-sidebar-accent hover:border-accent text-muted-foreground hover:text-destructive transition-all duration-200 active:scale-[0.98] group backdrop-blur-sm"
-                        title="Logout">
-                        <span class="text-base group-hover:scale-110 transition-transform">🚪</span>
-                        <span class="text-sm font-medium">Logout</span>
-                    </button>
                 </div>
+                
+                <!-- Logout Button -->
+                <button 
+                    @click="handleLogout"
+                    class="btn-outline w-full py-2 text-sm text-muted-foreground hover:text-destructive hover:border-destructive/30"
+                >
+                    Logout
+                </button>
             </div>
         </aside>
 

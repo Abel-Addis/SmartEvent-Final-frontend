@@ -7,6 +7,17 @@
       <div class="h-full w-full bg-gradient-to-br from-accent/10 via-transparent to-primary/10 blur-3xl" />
     </div>
 
+    <!-- Favorite Button -->
+    <button
+      class="absolute top-3 right-3 z-20 p-2 rounded-lg bg-card/80 backdrop-blur-sm border border-border hover:bg-card transition-all duration-200 hover:scale-110"
+      @click.stop="toggleFavorite"
+      :title="isFavorite ? 'Remove from favorites' : 'Add to favorites'"
+    >
+      <span class="text-lg transition-transform duration-200" :class="{ 'scale-110': isFavorite }">
+        {{ isFavorite ? '❤️' : '🤍' }}
+      </span>
+    </button>
+
     <!-- Event Image/Icon Section -->
     <div
       class="relative h-40 rounded-2xl flex items-center justify-between mb-4 overflow-hidden border border-border bg-gradient-to-br from-secondary/80 via-card to-muted/60"
@@ -59,7 +70,9 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useFavoritesStore } from '@/stores/favorites'
 
 const props = defineProps({
   id: [String, Number],
@@ -74,6 +87,17 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const favoritesStore = useFavoritesStore()
+
+const isFavorite = computed(() => {
+  return props.id ? favoritesStore.isFavorite(props.id) : false
+})
+
+const toggleFavorite = () => {
+  if (props.id) {
+    favoritesStore.toggleFavorite(props.id)
+  }
+}
 
 const navigateToDetails = () => {
   if (props.id) {
@@ -81,3 +105,4 @@ const navigateToDetails = () => {
   }
 }
 </script>
+

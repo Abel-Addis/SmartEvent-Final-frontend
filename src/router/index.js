@@ -215,7 +215,7 @@ router.beforeEach((to, from, next) => {
     "/",
   ];
   const authRequired = !publicPages.includes(to.path);
-  const loggedIn = localStorage.getItem("authToken"); // Use 'authToken' to match store
+  const loggedIn = localStorage.getItem("authToken");
 
   if (authRequired && !loggedIn) {
     return next("/login");

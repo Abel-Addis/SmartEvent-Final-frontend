@@ -1,0 +1,88 @@
+import * as signalR from "@microsoft/signalr";
+
+class NotificationService {
+  constructor(token) {
+    this.token = token;
+    this.connection = null;
+    this.listeners = [];
+  }
+
+  // Connect to the hub
+  async connect() {
+    this.connection = new signalR.HubConnectionBuilder()
+      .withUrl("https://localhost:7119/hubs/notifications", {
+        accessTokenFactory: () => this.token, // JWT token
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    // Receive notification
+    this.connection.on("ReceiveNotification", (notification) => {
+      console.log("Notification received:", notification);
+      this.listeners.forEach((callback) => callback(notification));
+    });
+
+    try {
+      await this.connection.start();
+      console.log(" Connected to notification hub");
+    } catch (err) {
+      console.error("❌ Error connecting:", err);
+    }
+  }
+
+  // Add listener
+  onNotification(callback) {
+    this.listeners.push(callback);
+  }
+
+  // Disconnect (optional)
+  async disconnect() {
+    if (this.connection) {
+      await this.connection.stop();
+    }
+  }
+}
+
+export default NotificationService;
+
+
+ //////////// on the componet for notification//////////////
+
+
+
+import React, { useEffect, useState } from "react";
+import NotificationService from "./NotificationService";
+
+const Notifications = ({ token }) => {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const service = new NotificationService(token);
+
+    service.connect();
+    service.onNotification((notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+    });
+
+    return () => {
+      service.disconnect();
+    };
+  }, [token]);
+
+  return (
+    <div>
+      <h2>Notifications</h2>
+      {notifications.length === 0 && <p>No notifications yet.</p>}
+      <ul>
+        {notifications.map((n, index) => (
+          <li key={index}>
+            <strong>{n.Title}</strong>: {n.Message} ({n.Type}) -{" "}
+            {new Date(n.CreatedAt).toLocaleTimeString()}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default Notifications;

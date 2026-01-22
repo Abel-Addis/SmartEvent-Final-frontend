@@ -313,6 +313,23 @@
       </div>
     </div>
     
+    <!-- Notifications -->
+    <div
+      v-if="selectedTab === 'notifications'"
+      class="card p-6 space-y-4"
+    >
+      <h3 class="text-h3 font-bold">Notification System</h3>
+      <p class="text-sm text-muted-foreground">Test the real-time notification system. This will send a notification to yourself.</p>
+      <div class="flex gap-4">
+        <button class="btn-primary" @click="sendTestNotification">
+           Send Test Notification (Server)
+        </button>
+        <button class="btn-outline" @click="testLocalToast">
+           Test Toast (Local)
+        </button>
+      </div>
+    </div>
+    
     <!-- System Health -->
     <div
       v-if="selectedTab === 'health'"
@@ -438,6 +455,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { adminService } from '@/services/adminService'
+import apiClient from '@/services/api'
 
 const selectedTab = ref('platform')
 
@@ -446,6 +464,7 @@ const settingsTabs = [
   { id: 'boost', label: 'Boost Levels' },
   { id: 'health', label: 'System Health' },
   { id: 'recommendation', label: 'AI Recommendation' },
+  { id: 'notifications', label: 'Notifications' },
 ]
 
 const settings = ref({
@@ -641,6 +660,24 @@ const toggleBoostStatus = async (level) => {
   } catch (err) {
     alert(err.response?.data?.message || 'Failed to update status')
   }
+}
+
+import { useToast } from "vue-toastification"
+const toast = useToast()
+
+const sendTestNotification = async () => {
+  try {
+    await apiClient.post('/Notification/test')
+    alert('Test notification sent! Check the bell icon.')
+  } catch (err) {
+    alert('Failed to send test notification')
+  }
+}
+
+const testLocalToast = () => {
+    toast.info("This is a local test toast!", {
+    timeout: 3000
+    });
 }
 
 onMounted(async () => {
