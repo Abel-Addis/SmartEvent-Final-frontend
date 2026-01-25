@@ -132,7 +132,7 @@
             <button class="text-muted-foreground hover:text-foreground" @click="closeModal">✕</button>
           </div>
 
-          <form @submit.prevent="handleSubmit" class="space-y-4">
+          <form @submit.prevent="onSubmit" class="space-y-4">
             <!-- Full Name -->
             <div>
               <label class="block text-sm font-medium mb-2">Full Name *</label>
@@ -449,7 +449,7 @@ const onEventSelect = (assignment) => {
 }
 
 // Form submission
-const handleSubmit = handleSubmit(async (values) => {
+const onSubmit = handleSubmit(async (values) => {
   // Transform assignments to match backend DTO structure
   const assignmentData = assignments.value
     .filter(a => a.eventId) // Only include assignments with selected event

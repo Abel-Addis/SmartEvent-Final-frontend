@@ -65,7 +65,7 @@ const handleLogin = handleSubmit(async (values) => {
       <!-- Brand & Header -->
       <div class="text-center mb-10 space-y-3">
         <router-link to="/" class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 mb-4 shadow-lg shadow-indigo-600/20 hover:scale-105 transition-transform duration-300">
-          <span class="font-bold text-xl text-white">V</span>
+          <span class="font-bold text-xl text-white">C</span>
         </router-link>
         <h1 class="text-3xl font-bold tracking-tight">
           Welcome back
@@ -154,7 +154,7 @@ const handleLogin = handleSubmit(async (values) => {
        
        <!-- Footer Simple -->
        <div class="mt-8 text-center text-xs text-slate-600">
-        &copy; 2025 EventHub Inc.
+        &copy; 2025 Convene.
        </div>
 
     </div>

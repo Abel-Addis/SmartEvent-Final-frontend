@@ -9,8 +9,8 @@ export const useAdminStore = defineStore("admin", () => {
   const users = ref([]);
   const events = ref([]);
   const loading = ref(false);
-  const usersLoading = ref(false); // dedicated loader for users list/filter
-  const statusLoading = ref(false); // dedicated loader for status toggle
+  const usersLoading = ref(false);
+  const statusLoading = ref(false);
   const error = ref(null);
 
   // Pagination state
@@ -29,12 +29,12 @@ export const useAdminStore = defineStore("admin", () => {
 
   // Getters
   const pendingOrganizersCount = computed(
-    () => pendingOrganizersPagination.value.totalCount
+    () => pendingOrganizersPagination.value.totalCount,
   );
   const totalUsersCount = computed(() => usersPagination.value.totalCount);
   const totalEventsCount = computed(() => events.value.length);
   const activeOrganizersCount = computed(
-    () => allOrganizers.value.filter((o) => o.status === "Active").length
+    () => allOrganizers.value.filter((o) => o.status === "Active").length,
   );
 
   // Actions
@@ -92,7 +92,7 @@ export const useAdminStore = defineStore("admin", () => {
       const response = await adminService.approveOrganizer(id, adminNotes);
       // Remove from pending list
       pendingOrganizers.value = pendingOrganizers.value.filter(
-        (o) => o.id !== id
+        (o) => o.id !== id,
       );
       pendingOrganizersPagination.value.totalCount -= 1;
       return { success: true, data: response };
@@ -116,7 +116,7 @@ export const useAdminStore = defineStore("admin", () => {
       const response = await adminService.rejectOrganizer(id, adminNotes);
       // Remove from pending list
       pendingOrganizers.value = pendingOrganizers.value.filter(
-        (o) => o.id !== id
+        (o) => o.id !== id,
       );
       pendingOrganizersPagination.value.totalCount -= 1;
       return { success: true, data: response };

@@ -14,7 +14,7 @@ export const adminService = {
       ...(params.sortDirection && { sortDirection: params.sortDirection }),
     });
     const response = await apiClient.get(
-      `/admin/organizers/get-pending?${queryParams}`
+      `/admin/organizers/get-pending?${queryParams}`,
     );
     return response.data;
   },
@@ -33,7 +33,7 @@ export const adminService = {
       ...(params.sortDirection && { sortDirection: params.sortDirection }),
     });
     const response = await apiClient.get(
-      `/admin/organizers/get-all?${queryParams}`
+      `/admin/organizers/get-all?${queryParams}`,
     );
     return response.data;
   },
@@ -150,7 +150,7 @@ export const adminService = {
    */
   async getPlatformRevenue() {
     const response = await apiClient.get(
-      "/admin/AdminPlatform/Get-Platform-Revenue"
+      "/admin/AdminPlatform/Get-Platform-Revenue",
     );
     return response.data;
   },
@@ -170,7 +170,7 @@ export const adminService = {
    */
   async getPlatformSettings() {
     const response = await apiClient.get(
-      "/admin/AdminPlatform/Get-Platform-Settings"
+      "/admin/AdminPlatform/Get-Platform-Settings",
     );
     return response.data;
   },
@@ -182,7 +182,7 @@ export const adminService = {
   async updatePlatformSettings(payload) {
     const response = await apiClient.put(
       "/admin/AdminPlatform/Update-Platform-Settings",
-      payload
+      payload,
     );
     return response.data;
   },
@@ -198,7 +198,7 @@ export const adminService = {
       ...(payload.reason && { Reason: payload.reason }),
     });
     const response = await apiClient.post(
-      `/admin/AdminPlatform/Add-Credit-to-Organizer?${query}`
+      `/admin/AdminPlatform/Add-Credit-to-Organizer?${query}`,
     );
     return response.data;
   },
@@ -209,7 +209,7 @@ export const adminService = {
    */
   async getAllBoostLevels() {
     const response = await apiClient.get(
-      "/admin/AdminBoost/Get-All-Boost-Levels"
+      "/admin/AdminBoost/Get-All-Boost-Levels",
     );
     return response.data;
   },
@@ -221,7 +221,7 @@ export const adminService = {
   async updateBoostLevel(payload) {
     const response = await apiClient.put(
       "/admin/AdminBoost/Update-Boost-Level",
-      payload
+      payload,
     );
     return response.data;
   },
@@ -233,7 +233,7 @@ export const adminService = {
    */
   async setBoostLevelStatus(id, isActive) {
     const response = await apiClient.post(
-      `/admin/AdminBoost/BoostLevel-UpdateStatus/${id}?IsActive=${isActive}`
+      `/admin/AdminBoost/BoostLevel-UpdateStatus/${id}?IsActive=${isActive}`,
     );
     return response.data;
   },
@@ -256,14 +256,19 @@ export const adminService = {
     const query = new URLSearchParams({
       ...(filter.startDate && { startDate: filter.startDate }),
       ...(filter.endDate && { endDate: filter.endDate }),
-      ...(filter.transactionType && { transactionType: filter.transactionType }),
+      ...(filter.transactionType && {
+        transactionType: filter.transactionType,
+      }),
       ...(filter.minAmount && { minAmount: filter.minAmount }),
       ...(filter.maxAmount && { maxAmount: filter.maxAmount }),
-      export: exportCsv
+      export: exportCsv,
     }).toString();
 
-    const config = exportCsv ? { responseType: 'blob' } : {};
-    const response = await apiClient.get(`/admin/AdminPlatform/get-credit-transactions?${query}`, config);
+    const config = exportCsv ? { responseType: "blob" } : {};
+    const response = await apiClient.get(
+      `/admin/AdminPlatform/get-credit-transactions?${query}`,
+      config,
+    );
     return response.data;
   },
 
@@ -288,14 +293,14 @@ export const adminService = {
 
   async getUserBookings(userId) {
     const response = await apiClient.get(
-      `/bookings/get-bookings-by-user/${userId}`
+      `/bookings/get-bookings-by-user/${userId}`,
     );
     return response.data;
   },
 
   async getOrganizerEvents(organizerId) {
     const response = await apiClient.get(
-      `/events/get-events-by-organizer/${organizerId}`
+      `/events/get-events-by-organizer/${organizerId}`,
     );
     return response.data;
   },
@@ -303,7 +308,7 @@ export const adminService = {
   // --- Notifications ---
 
   async getAdminNotifications() {
-    const response = await apiClient.get("/Notification/user"); // Uses endpoint getting current user's notifs
+    const response = await apiClient.get("/Notification/user");
     return response.data;
   },
 
@@ -319,19 +324,25 @@ export const adminService = {
 
   /**
    * Send broadcast notification to all users
-   * @param {{ title: string, message: string }} payload 
+   * @param {{ title: string, message: string }} payload
    */
   async sendBroadcast(payload) {
-    const response = await apiClient.post("/admin/notifications/broadcast", payload);
+    const response = await apiClient.post(
+      "/admin/notifications/broadcast",
+      payload,
+    );
     return response.data;
   },
 
   /**
    * Send notification to specific users
-   * @param {{ userIds: string[], title: string, message: string }} payload 
+   * @param {{ userIds: string[], title: string, message: string }} payload
    */
   async sendToUsers(payload) {
-    const response = await apiClient.post("/admin/notifications/users", payload);
+    const response = await apiClient.post(
+      "/admin/notifications/users",
+      payload,
+    );
     return response.data;
   },
 
@@ -343,5 +354,5 @@ export const adminService = {
     const query = new URLSearchParams(params).toString();
     const response = await apiClient.get(`/admin/notifications/users?${query}`);
     return response.data;
-  }
+  },
 };
