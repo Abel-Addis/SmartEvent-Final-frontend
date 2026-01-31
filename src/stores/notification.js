@@ -42,7 +42,8 @@ export const useNotificationStore = defineStore("notification", () => {
   const connect = async () => {
     if (connection.value || !authStore.token) return;
 
-    const hubUrl = "http://localhost:5272/hubs/notifications"; // Configure as needed
+    const hubUrl =
+      "https://convene-backend-7whb.onrender.com/hubs/notifications"; // Configure as needed
 
     connection.value = new signalR.HubConnectionBuilder()
       .withUrl(hubUrl, {

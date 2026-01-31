@@ -1,5 +1,23 @@
 <template>
   <div class="space-y-6">
+    <!-- Tabs -->
+    <div class="flex gap-4 border-b border-border">
+      <button
+        class="pb-2 text-sm font-medium transition-colors relative"
+        :class="activeTab === 'active' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'"
+        @click="activeTab = 'active'"
+      >
+        Active Events
+      </button>
+      <button
+        class="pb-2 text-sm font-medium transition-colors relative"
+        :class="activeTab === 'upcoming' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'"
+        @click="activeTab = 'upcoming'"
+      >
+        Upcoming Events
+      </button>
+    </div>
+
     <!-- Search and Filters -->
     <div class="card">
       <div class="flex flex-col gap-4">
@@ -110,6 +128,17 @@
         />
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -117,7 +146,12 @@
 import { ref, watch, onMounted } from 'vue'
 import EventCard from '@/components/EventCard.vue'
 import { attendeeService } from '@/services/attendeeService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
 
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+
+const activeTab = ref('active')
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const selectedPrice = ref('')
@@ -135,45 +169,65 @@ onMounted(() => {
 const fetchEvents = async () => {
   loading.value = true
   try {
-    // Parse price range
-    let minPrice = null
-    let maxPrice = null
-    if (selectedPrice.value === 'free') {
-       maxPrice = 0
-    } else if (selectedPrice.value === '0-50') {
-       maxPrice = 50
-    } else if (selectedPrice.value === '50-100') {
-       minPrice = 50
-       maxPrice = 100
-    } else if (selectedPrice.value === '100+') {
-       minPrice = 100
-    }
+    const hasFilters = searchQuery.value || selectedCategory.value || selectedPrice.value || selectedDate.value || selectedLocation.value
 
-    const payload = {
-      Keyword: searchQuery.value || null,
-      CategoryName: selectedCategory.value || null,
-      Venue: selectedLocation.value || null,
-      StartDateFrom: selectedDate.value ? new Date(selectedDate.value) : null,
-      MinPrice: minPrice,
-      MaxPrice: maxPrice,
-      PageNumber: 1,
-      PageSize: 20
-    }
-    
-    // Clean payload
-    Object.keys(payload).forEach(key => payload[key] === null && delete payload[key])
+    if (!hasFilters) {
+      // No filters: Use dedicated endpoints based on tab
+      let result
+      if (activeTab.value === 'active') {
+          result = await attendeeService.getActiveEvents({
+            PageNumber: 1,
+            PageSize: 20
+          })
+      } else {
+           result = await attendeeService.getUpcomingEvents({
+            PageNumber: 1,
+            PageSize: 20
+          })
+      }
+      events.value = result.items || []
+    } else {
+      // Filters active: Use the Search endpoint
+      // Parse price range
+      let minPrice = null
+      let maxPrice = null
+      if (selectedPrice.value === 'free') {
+         maxPrice = 0
+      } else if (selectedPrice.value === '0-50') {
+         maxPrice = 50
+      } else if (selectedPrice.value === '50-100') {
+         minPrice = 50
+         maxPrice = 100
+      } else if (selectedPrice.value === '100+') {
+         minPrice = 100
+      }
 
-    const result = await attendeeService.searchEvents(payload)
-    events.value = result.items || []
+      const payload = {
+        Keyword: searchQuery.value || null,
+        CategoryName: selectedCategory.value || null,
+        Venue: selectedLocation.value || null,
+        StartDateFrom: selectedDate.value ? new Date(selectedDate.value) : null,
+        MinPrice: minPrice,
+        MaxPrice: maxPrice,
+        PageNumber: 1,
+        PageSize: 20
+      }
+      
+      // Clean payload
+      Object.keys(payload).forEach(key => payload[key] === null && delete payload[key])
+
+      const result = await attendeeService.searchEvents(payload)
+      events.value = result.items || []
+    }
   } catch (err) {
-    console.error("Search failed", err)
+    displayError(err, 'Failed to load events')
   } finally {
     loading.value = false
   }
 }
 
-// Watch filters
-watch([searchQuery, selectedCategory, selectedPrice, selectedDate, selectedLocation], () => {
+// Watch filters and tab
+watch([activeTab, searchQuery, selectedCategory, selectedPrice, selectedDate, selectedLocation], () => {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     fetchEvents()

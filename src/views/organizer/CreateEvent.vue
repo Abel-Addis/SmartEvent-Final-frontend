@@ -3,7 +3,7 @@
     <!-- Error Message -->
     <div v-if="errorMessage"
       class="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-      {{ errorMessage }}
+      {{ typeof errorMessage === 'string' ? errorMessage : (errorMessage.response?.data?.error || errorMessage.message || 'An error occurred') }}
     </div>
 
     <!-- Progress Indicator -->
@@ -398,6 +398,17 @@
         </button>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessageNotify"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -410,6 +421,19 @@ import { useEventStore } from '../../stores/event'
 import { categoryService } from '../../services/categoryService'
 import MapLocationPicker from '../../components/MapLocationPicker.vue'
 import { compressImage, compressImages } from '../../utils/imageCompression'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { 
+  showError, 
+  errorTitle, 
+  errorMessage: errorMessageNotify, 
+  errorDetail, 
+  errorStatusCode, 
+  errorType,
+  displayError, 
+  closeError 
+} = useErrorNotification()
 
 const router = useRouter()
 const eventStore = useEventStore()
@@ -473,7 +497,7 @@ onMounted(async () => {
     // Restore form state from localStorage if exists
     restoreFormState()
   } catch (error) {
-    console.error('Failed to fetch initial data:', error)
+    displayError(error, 'Failed to fetch initial data')
   }
 })
 
@@ -706,10 +730,12 @@ const createDraftEvent = handleSubmit(async (values) => {
       createdEventId.value = result.event.eventId
       currentStep.value = 2
     } else {
-      errorMessage.value = result.message
+      errorMessage.value = result.message || 'Failed to create event'
+      displayError(result.message || 'Failed to create event', 'Event Creation Failed')
     }
-  } catch (error) {
-    errorMessage.value = 'Failed to create event'
+  } catch (err) {
+    errorMessage.value = err
+    displayError(err, 'Failed to create event')
   } finally {
     loading.value = false
   }
@@ -738,8 +764,9 @@ const saveTickets = async () => {
     // Check for failures
     const failures = results.filter(r => !r.success)
     if (failures.length > 0) {
-       console.error("Some tickets failed to save:", failures)
-       errorMessage.value = failures[0].message || "Failed to save some tickets."
+       const msg = failures[0].message || "Failed to save some tickets."
+       errorMessage.value = msg
+       displayError(msg, "Ticket Save Failed")
        // Do NOT proceed to next step - keep user on current step to fix the issue
        return
     }
@@ -758,11 +785,12 @@ const saveTickets = async () => {
     })
 
     currentStep.value = 3
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-       errorMessage.value = error.errors[0] // Show first validation error
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+       errorMessage.value = err.errors[0] // Show first validation error
     } else {
-       errorMessage.value = 'Failed to save tickets'
+       errorMessage.value = err
+       displayError(err, 'Failed to save tickets')
     }
   } finally {
     loading.value = false
@@ -831,15 +859,17 @@ const savePricingRules = async () => {
     // Check for failures
     const failures = results.filter(r => !r.success)
     if (failures.length > 0) {
-       console.error("Some pricing rules failed to save:", failures)
-       errorMessage.value = failures[0].message || "Failed to save some pricing rules."
+       const msg = failures[0].message || "Failed to save some pricing rules."
+       errorMessage.value = msg
+       displayError(msg, "Pricing Rules Failed")
        // Do NOT proceed to next step - keep user on current step to fix the issue
        return
     }
     
     currentStep.value = 4
-  } catch (error) {
-    errorMessage.value = 'Failed to save pricing rules'
+  } catch (err) {
+    errorMessage.value = err
+    displayError(err, 'Failed to save pricing rules')
   } finally {
     loading.value = false
   }
@@ -869,10 +899,12 @@ const publishNow = async () => {
       clearFormState()
       router.push('/organizer/events')
     } else {
-      errorMessage.value = result.message
+      errorMessage.value = result.message || 'Failed to publish event'
+      displayError(result.message || 'Failed to publish event', 'Publishing Failed')
     }
-  } catch (error) {
-    errorMessage.value = 'Failed to publish event'
+  } catch (err) {
+    errorMessage.value = err
+    displayError(err, 'Failed to publish event')
   } finally {
     loading.value = false
   }

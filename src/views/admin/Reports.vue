@@ -142,6 +142,91 @@
         </div>
     </div>
 
+    <!-- User Payments Tab -->
+    <div v-if="activeTab === 'payments'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+       <div class="card p-4 sm:p-6">
+          <h3 class="text-h3 font-bold mb-4">User Payments</h3>
+          
+          <!-- Filter Bar -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+             <!-- Status Filter -->
+             <div>
+               <label class="block text-sm font-medium mb-1">Status</label>
+               <select v-model="paymentFilter.status" class="input w-full px-3 py-2 border rounded-lg bg-background">
+                 <option value="">All Status</option>
+                 <option value="Paid">Paid</option>
+                 <option value="Pending">Pending</option>
+                 <option value="Failed">Failed</option>
+               </select>
+             </div>
+             
+             <!-- Timeframe Filter -->
+             <div>
+                <label class="block text-sm font-medium mb-1">Timeframe</label>
+                <select v-model="paymentFilter.timeframe" class="input w-full px-3 py-2 border rounded-lg bg-background">
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+             </div>
+             
+             <!-- Search -->
+             <div>
+                <label class="block text-sm font-medium mb-1">Search User</label>
+                <input v-model="paymentFilter.search" type="text" placeholder="Search by name or email..." class="input w-full px-3 py-2 border rounded-lg bg-background" />
+             </div>
+          </div>
+
+          <!-- Payments Table -->
+          <div class="overflow-x-auto border rounded-lg">
+             <table class="w-full text-sm text-left">
+                <thead class="bg-muted text-muted-foreground uppercase font-medium">
+                   <tr>
+                      <th class="px-4 py-3">Date</th>
+                      <th class="px-4 py-3">User</th>
+                      <th class="px-4 py-3">Event</th>
+                      <th class="px-4 py-3 text-right">Amount</th>
+                      <th class="px-4 py-3">Payment Status</th>
+                      <th class="px-4 py-3">Booking Status</th>
+                      <th class="px-4 py-3">Reference</th>
+                   </tr>
+                </thead>
+                <tbody v-if="loadingPayments" class="divide-y divide-border">
+                  <tr><td colspan="7" class="px-4 py-8 text-center text-muted-foreground">Loading payments...</td></tr>
+                </tbody>
+                <tbody v-else-if="filteredPayments.length === 0" class="divide-y divide-border">
+                   <tr><td colspan="7" class="px-4 py-8 text-center text-muted-foreground">No payments found matching filters.</td></tr>
+                </tbody>
+                <tbody v-else class="divide-y divide-border">
+                   <tr v-for="p in filteredPayments" :key="p.paymentId" class="hover:bg-muted/50 transition-colors">
+                      <td class="px-4 py-3 whitespace-nowrap">{{ formatDate(p.paymentDate) }}</td>
+                      <td class="px-4 py-3">
+                         <p class="font-medium">{{ p.fullname }}</p>
+                         <p class="text-xs text-muted-foreground">{{ p.email }}</p>
+                      </td>
+                      <td class="px-4 py-3">
+                         <p class="font-medium">{{ p.eventTitle }}</p>
+                         <p class="text-xs text-muted-foreground">{{ new Date(p.eventDate).toLocaleDateString() }}</p>
+                      </td>
+                      <td class="px-4 py-3 text-right font-mono font-semibold">{{ currency(p.amount) }}</td>
+                      <td class="px-4 py-3">
+                         <span :class="getPaymentStatusClass(p.paymentStatus)">{{ p.paymentStatus }}</span>
+                      </td>
+                      <td class="px-4 py-3">
+                         <span class="px-2 py-0.5 rounded-full text-xs font-medium" :class="p.bookingStatus === 'Confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'">{{ p.bookingStatus }}</span>
+                      </td>
+                      <td class="px-4 py-3 font-mono text-xs">{{ p.paymentReferenceNumber }}</td>
+                   </tr>
+                </tbody>
+             </table>
+          </div>
+          <div class="mt-4 text-xs text-muted-foreground text-right">
+             Showing {{ filteredPayments.length }} of {{ rawPayments.length }} records
+          </div>
+       </div>
+    </div>
+
     <!-- Credit Transactions Tab -->
     <div v-if="activeTab === 'transactions'" class="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
        <div class="card p-4 sm:p-6">
@@ -224,6 +309,17 @@
           </div>
        </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -231,10 +327,15 @@
 import { ref, onMounted, computed } from 'vue'
 import StatCard from '@/components/StatCard.vue'
 import { adminService } from '@/services/adminService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const tabs = [
   { id: 'overview', label: 'Overview' },
-  { id: 'transactions', label: 'Credit Transactions' }
+  { id: 'transactions', label: 'Credit Transactions' },
+  { id: 'payments', label: 'User Payments' }
 ]
 const activeTab = ref('overview')
 
@@ -258,6 +359,15 @@ const loadingTransactions = ref(false)
 const rawTransactions = ref([])
 const transFilter = ref({
   type: '',
+  timeframe: 'all',
+  search: ''
+})
+
+// --- User Payments State ---
+const loadingPayments = ref(false)
+const rawPayments = ref([])
+const paymentFilter = ref({
+  status: '',
   timeframe: 'all',
   search: ''
 })
@@ -338,9 +448,22 @@ const fetchTransactions = async () => {
   }
 }
 
+const fetchPayments = async () => {
+  loadingPayments.value = true
+  try {
+    const data = await adminService.getUserPayments()
+    rawPayments.value = data || []
+  } catch (err) {
+    console.error("Failed to load user payments", err)
+  } finally {
+    loadingPayments.value = false
+  }
+}
+
 onMounted(() => {
   fetchData()
   fetchTransactions()
+  fetchPayments()
 })
 
 // --- Filtering Logic (Frontend) ---
@@ -393,14 +516,14 @@ const formatDate = (d) => {
 }
 
 // --- Actions ---
-const generateReport = () => { alert("Report generation simulated.") }
-const downloadReport = () => { alert("Report PDF downloaded.") }
+const generateReport = () => { /* No-op or success notification */ }
+const downloadReport = () => { /* No-op or success notification */ }
 const downloadReportFile = (id) => { 
   // Functional Download: Find the boost analytics item corresponding to this "report" and download as JSON
   const reportItem = boostAnalytics.value.find(b => (b.boostLevelId || b.id) === id) || boostAnalytics.value[id]
   
   if (!reportItem) {
-     alert("Report data not found.")
+     displayError("Report data not found.")
      return
   }
 
@@ -423,7 +546,50 @@ const downloadTransactionsCsv = async () => {
       document.body.appendChild(link)
       link.click()
    } catch (err) {
-      alert("Failed to download CSV")
+      displayError(err, "Failed to download CSV")
+   }
+}
+
+// --- User Payments Filtering ---
+const filteredPayments = computed(() => {
+   return rawPayments.value.filter(p => {
+      // 1. Status Filter
+      if (paymentFilter.value.status && p.paymentStatus !== paymentFilter.value.status) return false
+      
+      // 2. Search Filter (User name or email)
+      if (paymentFilter.value.search) {
+         const searchLower = paymentFilter.value.search.toLowerCase()
+         const userName = (p.fullname || '').toLowerCase()
+         const userEmail = (p.email || '').toLowerCase()
+         if (!userName.includes(searchLower) && !userEmail.includes(searchLower)) return false
+      }
+      
+      // 3. Timeframe Filter
+      if (paymentFilter.value.timeframe !== 'all') {
+         const pDate = new Date(p.paymentDate)
+         const now = new Date()
+         
+         if (paymentFilter.value.timeframe === 'today') {
+            if (pDate.toDateString() !== now.toDateString()) return false
+         } else if (paymentFilter.value.timeframe === 'week') {
+            const oneWeekAgo = new Date(now.setDate(now.getDate() - 7))
+            if (pDate < oneWeekAgo) return false
+         } else if (paymentFilter.value.timeframe === 'month') {
+             const oneMonthAgo = new Date(now.setMonth(now.getMonth() - 1))
+             if (pDate < oneMonthAgo) return false
+         }
+      }
+      
+      return true
+   })
+})
+
+const getPaymentStatusClass = (status) => {
+   switch (status) {
+      case 'Paid': return 'px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700'
+      case 'Pending': return 'px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700'
+      case 'Failed': return 'px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700'
+      default: return 'px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700'
    }
 }
 </script>

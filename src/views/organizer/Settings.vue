@@ -17,7 +17,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-      {{ error }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Success Message -->
@@ -113,24 +113,6 @@
         </div>
       </div>
 
-      <!-- Statistics -->
-      <div class="card">
-        <h3 class="text-h3 font-bold mb-4">Your Statistics</h3>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="text-center p-4 rounded-lg bg-muted">
-            <p class="text-2xl font-bold">{{ profile.totalEvents }}</p>
-            <p class="text-sm text-muted-foreground">Total Events</p>
-          </div>
-          <div class="text-center p-4 rounded-lg bg-muted">
-            <p class="text-2xl font-bold">{{ profile.totalTicketsSold }}</p>
-            <p class="text-sm text-muted-foreground">Tickets Sold</p>
-          </div>
-          <div class="text-center p-4 rounded-lg bg-muted">
-            <p class="text-2xl font-bold">${{ formatNumber(profile.estimatedRevenue) }}</p>
-            <p class="text-sm text-muted-foreground">Revenue</p>
-          </div>
-        </div>
-      </div>
 
       <!-- Save Button -->
       <div class="flex gap-3">
@@ -142,12 +124,27 @@
         </button>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { profileService } from '@/services/profileService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -179,8 +176,8 @@ const fetchProfile = async () => {
     formData.businessName = data.businessName || ''
     formData.businessEmail = data.businessEmail || ''
   } catch (err) {
-    console.error('Failed to fetch profile:', err)
-    error.value = 'Failed to load profile. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to load profile')
   } finally {
     loading.value = false
   }
@@ -200,16 +197,11 @@ const saveProfile = async () => {
       BusinessEmail: formData.businessEmail || null
     })
 
-    successMessage.value = 'Profile updated successfully!'
+    displayError('Profile updated successfully!', 'Success', 'success')
     await fetchProfile() // Refresh profile
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = null
-    }, 3000)
   } catch (err) {
-    console.error('Failed to update profile:', err)
-    error.value = 'Failed to update profile. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to update profile')
   } finally {
     saving.value = false
   }
@@ -238,15 +230,10 @@ const handleImageUpload = async (event) => {
   try {
     const response = await profileService.updateProfileImage(file)
     profile.value.profileImageUrl = response.profileImageUrl
-    successMessage.value = 'Profile picture updated successfully!'
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = null
-    }, 3000)
+    displayError('Profile picture updated successfully!', 'Success', 'success')
   } catch (err) {
-    console.error('Failed to upload image:', err)
-    error.value = 'Failed to upload image. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to upload image')
   } finally {
     uploadingImage.value = false
     // Reset file input

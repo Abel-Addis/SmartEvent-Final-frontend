@@ -87,7 +87,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="card p-4 border border-destructive bg-destructive/10">
-      <p class="text-destructive">{{ error }}</p>
+      <p class="text-destructive">{{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}</p>
     </div>
 
     <!-- Users Table -->
@@ -279,6 +279,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -286,6 +309,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '../../stores/admin'
 import { adminService } from '@/services/adminService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const adminStore = useAdminStore()
 
@@ -366,14 +396,20 @@ const changePage = async (page) => {
 // Toggle user status
 const toggleUserStatus = async (userId, isCurrentlyActive) => {
   const action = isCurrentlyActive ? 'deactivate' : 'activate'
-  const confirmed = confirm(`Are you sure you want to ${action} this user?`)
+  
+  const confirmed = await askConfirmation({
+    title: `${isCurrentlyActive ? 'Deactivate' : 'Activate'} User`,
+    message: `Are you sure you want to ${action} this user? ${isCurrentlyActive ? 'They will not be able to log in until reactivated.' : 'They will regain access to the platform.'}`,
+    confirmText: isCurrentlyActive ? 'Deactivate' : 'Activate',
+    type: isCurrentlyActive ? 'danger' : 'info'
+  })
   
   if (confirmed) {
     const result = await adminStore.updateUserStatus(userId, !isCurrentlyActive)
     if (result.success) {
-      alert(`User ${action}d successfully!`)
+      displayError(`User ${isCurrentlyActive ? 'deactivated' : 'activated'} successfully!`, 'Success', 'success')
     } else {
-      alert(`Failed to ${action} user: ${result.message}`)
+      displayError(result.message || `Failed to ${action} user`)
     }
   }
 }
@@ -389,7 +425,7 @@ const openBookingsModal = async (user) => {
     const bookings = await adminService.getUserBookings(user.id)
     userBookings.value = bookings || []
   } catch (err) {
-    alert('Failed to load user bookings')
+    displayError(err, 'Failed to load user bookings')
   } finally {
     bookingsLoading.value = false
   }

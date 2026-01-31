@@ -104,8 +104,9 @@
             {{ submitting ? 'Boosting...' : 'Boost Event' }}
           </button>
           
-          <p v-if="error" class="text-destructive text-sm text-center">{{ error }}</p>
-          <p v-if="successMsg" class="text-success text-sm text-center">{{ successMsg }}</p>
+          <p v-if="error" class="text-destructive text-sm text-center">
+            {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
+          </p>
         </div>
       </div>
     </div>
@@ -156,6 +157,29 @@
         </table>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -164,6 +188,13 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { boostService } from '../../services/boostService'
 import { eventService } from '../../services/eventService'
 import { useAuthStore } from '../../stores/auth'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const authStore = useAuthStore()
 const currentTab = ref('apply')
@@ -181,7 +212,6 @@ const loadingEvents = ref(false)
 const loadingLevels = ref(false)
 const submitting = ref(false)
 const error = ref('')
-const successMsg = ref('')
 
 // History Tab State
 const myBoosts = ref([])
@@ -220,8 +250,8 @@ const loadData = async () => {
         boostLevels.value = levels || []
         
     } catch (err) {
-        console.error("Failed to load boost data", err)
-        error.value = "Failed to load events or boost levels."
+        error.value = err
+        displayError(err, "Failed to load boost data")
     } finally {
         loadingEvents.value = false
         loadingLevels.value = false
@@ -234,7 +264,7 @@ const loadMyBoosts = async () => {
         const data = await boostService.getMyBoosts()
         myBoosts.value = data || []
     } catch (err) {
-        console.error("Failed to load history", err)
+        displayError(err, "Failed to load history")
     } finally {
         loadingHistory.value = false
     }
@@ -243,9 +273,17 @@ const loadMyBoosts = async () => {
 const handleApplyBoost = async () => {
     if (!isValid.value) return
     
+    const confirmed = await askConfirmation({
+        title: 'Boost Event',
+        message: `Are you sure you want to apply the ${selectedLevel.value.name} boost to "${selectedEvent.value.title}" for ${selectedLevel.value.creditCost} credits?`,
+        type: 'info',
+        confirmText: 'Confirm Boost'
+    })
+
+    if (!confirmed) return
+
     submitting.value = true
     error.value = ''
-    successMsg.value = ''
     
     try {
         const result = await boostService.applyBoost({
@@ -254,7 +292,7 @@ const handleApplyBoost = async () => {
         })
         
         if (result && result.success) {
-            successMsg.value = result.message || "Boost applied successfully!"
+            displayError(result.message || "Boost applied successfully!", 'Success', 'success')
             selectedEventId.value = null
             selectedLevelId.value = null
             // Switch to history tab after short delay
@@ -263,12 +301,11 @@ const handleApplyBoost = async () => {
             }, 1500)
         } else {
             error.value = result?.message || "Failed to apply boost."
+            displayError(result?.message || "Failed to apply boost.", "Boost Failed")
         }
     } catch (err) {
-        console.error(err)
-        // Handle specific error like "Not enough credits"
-        const msg = err.response?.data?.message || err.message
-        error.value = msg || "An error occurred while applying boost."
+        error.value = err
+        displayError(err, "An error occurred while applying boost")
     } finally {
         submitting.value = false
     }

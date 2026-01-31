@@ -35,7 +35,7 @@ export const useAuthStore = defineStore("auth", () => {
           phoneNumber: response.phoneNumber,
           role: response.role,
           status: response.status,
-          id: response.userId
+          id: response.userId,
         };
 
         // Persist to localStorage
@@ -44,11 +44,12 @@ export const useAuthStore = defineStore("auth", () => {
 
         return { success: true, user: user.value };
       } else {
-        error.value = response.message || "Login failed";
+        error.value = response.error || response.message || "Login failed";
         return { success: false, message: error.value };
       }
     } catch (err) {
       const errorMessage =
+        err.response?.data?.error ||
         err.response?.data?.message ||
         err.message ||
         "Login failed. Please try again.";
@@ -74,7 +75,7 @@ export const useAuthStore = defineStore("auth", () => {
           phoneNumber: response.phoneNumber,
           role: response.role,
           status: response.status,
-          id: response.userId
+          id: response.userId,
         };
 
         localStorage.setItem("authToken", response.token);
@@ -82,12 +83,16 @@ export const useAuthStore = defineStore("auth", () => {
 
         return { success: true, user: user.value };
       } else {
-        error.value = response.message || "Registration failed";
+        error.value =
+          response.error || response.message || "Registration failed";
         return { success: false, message: error.value };
       }
     } catch (err) {
       const errorMessage =
-        err.response?.data?.message || err.message || "Registration failed";
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "Registration failed";
       error.value = errorMessage;
       return { success: false, message: errorMessage };
     } finally {
@@ -110,7 +115,7 @@ export const useAuthStore = defineStore("auth", () => {
           phoneNumber: response.phoneNumber,
           role: response.role,
           status: response.status,
-          id: response.userId
+          id: response.userId,
         };
 
         localStorage.setItem("authToken", response.token);
@@ -118,12 +123,16 @@ export const useAuthStore = defineStore("auth", () => {
 
         return { success: true, user: user.value };
       } else {
-        error.value = response.message || "Registration failed";
+        error.value =
+          response.error || response.message || "Registration failed";
         return { success: false, message: error.value };
       }
     } catch (err) {
       const errorMessage =
-        err.response?.data?.message || err.message || "Registration failed";
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        err.message ||
+        "Registration failed";
       error.value = errorMessage;
       return { success: false, message: errorMessage };
     } finally {

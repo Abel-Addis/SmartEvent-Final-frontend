@@ -447,8 +447,54 @@
                </div>
             </div>
          </div>
+
+        <!-- Proximity Distribution -->
+        <div class="card p-6">
+          <h3 class="font-bold mb-4">📍 User Proximity Preferences</h3>
+          <p class="text-sm text-muted-foreground mb-4">Distribution of user preferences based on event distance</p>
+          <div class="space-y-3">
+            <div v-for="(count, distance) in (metrics?.proximityDistribution || {})" :key="distance" class="space-y-1">
+              <div class="flex justify-between text-sm">
+                <span class="font-medium">{{ distance }}</span>
+                <span class="text-muted-foreground">{{ count }} users</span>
+              </div>
+              <div class="h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  class="h-full bg-gradient-to-r from-green-500 to-blue-500" 
+                  :style="{ width: `${getProximityPercentage(count)}%` }"
+                ></div>
+              </div>
+            </div>
+            <div v-if="!metrics?.proximityDistribution || Object.keys(metrics.proximityDistribution).length === 0" class="text-sm text-muted-foreground">
+              No proximity data available.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -456,6 +502,13 @@
 import { ref, onMounted, watch } from 'vue'
 import { adminService } from '@/services/adminService'
 import apiClient from '@/services/api'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const selectedTab = ref('platform')
 
@@ -512,7 +565,7 @@ const fetchSettings = async () => {
       initialSettings.value = { ...settings.value }
     }
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to load settings')
+    displayError(err, 'Failed to load settings')
   }
 }
 
@@ -526,7 +579,7 @@ const fetchOrganizers = async () => {
     })
     organizers.value = res.items || []
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to load organizers')
+    displayError(err, 'Failed to load organizers')
   } finally {
     organizersLoading.value = false
   }
@@ -538,7 +591,7 @@ const fetchBoostLevels = async () => {
     const data = await adminService.getAllBoostLevels()
     boostLevels.value = data || []
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to load boost levels')
+    displayError(err || 'Failed to load boost levels')
   } finally {
     boostLevelsLoading.value = false
   }
@@ -550,8 +603,7 @@ const fetchHealth = async () => {
     const data = await adminService.getSystemHealth()
     healthData.value = data
   } catch (err) {
-    console.error(err)
-    alert('Failed to check system health')
+    displayError(err, 'Failed to check system health')
   } finally {
     healthLoading.value = false
   }
@@ -563,21 +615,27 @@ const fetchMetrics = async () => {
     const data = await adminService.getRecommendationMetrics()
     metrics.value = data
   } catch (err) {
-    alert('Failed to load recommendation metrics')
+    displayError(err, 'Failed to load recommendation metrics')
   } finally {
     loadingMetrics.value = false
   }
 }
 
 const retrainModel = async () => {
-  if (!confirm('Are you sure you want to retrain the global model? This might take a while.')) return
+  const confirmed = await askConfirmation({
+    title: 'Retrain AI Model',
+    message: 'Are you sure you want to retrain the global recommendation model? This process analysis platform-wide interactions and may take several minutes.',
+    confirmText: 'Retrain Model',
+    type: 'warning'
+  })
+  
+  if (!confirmed) return
   retraining.value = true
   try {
     await adminService.retrainGlobalModel()
-    alert('Model retraining started/completed successfully.')
     await fetchMetrics()
   } catch (err) {
-     alert(err.response?.data?.message || 'Failed to retrain model')
+     displayError(err, 'Failed to retrain model')
   } finally {
     retraining.value = false
   }
@@ -602,10 +660,10 @@ const saveSettings = async () => {
       initialOrganizerCredits: Number(settings.value.initialOrganizerCredits) || 0,
       eventPublishCost: Number(settings.value.eventPublishCost) || 0,
     })
-    alert('Settings saved successfully')
     initialSettings.value = { ...settings.value }
+    displayError('Settings updated successfully!', 'Success', 'success')
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to save settings')
+    displayError(err, 'Failed to save settings')
   } finally {
     saving.value = false
   }
@@ -619,7 +677,7 @@ const resetSettings = () => {
 
 const addCredits = async () => {
   if (!creditForm.value.userId || !creditForm.value.credits) {
-    alert('Organizer and credits are required')
+    displayError('Organizer and credits are required')
     return
   }
   try {
@@ -629,10 +687,10 @@ const addCredits = async () => {
       credits: creditForm.value.credits,
       reason: creditForm.value.reason,
     })
-    alert('Credits added successfully')
+    displayError('Credits added successfully!', 'Success', 'success')
     creditForm.value = { userId: '', credits: 0, reason: '' }
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to add credits')
+    displayError(err, 'Failed to add credits')
   } finally {
     creditSaving.value = false
   }
@@ -645,11 +703,11 @@ const editBoostLevel = (level) => {
 const saveBoostLevel = async () => {
   try {
     await adminService.updateBoostLevel(editingBoost.value)
-    alert('Boost level updated successfully')
     editingBoost.value = null
     await fetchBoostLevels()
+    displayError('Boost level updated successfully!', 'Success', 'success')
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to update boost level')
+    displayError(err, 'Failed to update boost level')
   }
 }
 
@@ -658,7 +716,7 @@ const toggleBoostStatus = async (level) => {
     await adminService.setBoostLevelStatus(level.id, !level.isActive)
      await fetchBoostLevels()
   } catch (err) {
-    alert(err.response?.data?.message || 'Failed to update status')
+    displayError(err, 'Failed to update status')
   }
 }
 
@@ -668,9 +726,8 @@ const toast = useToast()
 const sendTestNotification = async () => {
   try {
     await apiClient.post('/Notification/test')
-    alert('Test notification sent! Check the bell icon.')
   } catch (err) {
-    alert('Failed to send test notification')
+    displayError(err, 'Failed to send test notification')
   }
 }
 
@@ -678,6 +735,13 @@ const testLocalToast = () => {
     toast.info("This is a local test toast!", {
     timeout: 3000
     });
+}
+
+// Helper to calculate proximity percentage for visualization
+const getProximityPercentage = (count) => {
+  if (!metrics.value?.proximityDistribution) return 0
+  const total = Object.values(metrics.value.proximityDistribution).reduce((sum, val) => sum + val, 0)
+  return total > 0 ? Math.min(100, (count / total) * 100) : 0
 }
 
 onMounted(async () => {

@@ -29,7 +29,9 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-4 border border-destructive bg-destructive/10 rounded-lg">
-      <p class="text-destructive">{{ error }}</p>
+      <p class="text-destructive">
+        {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
+      </p>
     </div>
 
     <!-- Purchase Credits Section -->
@@ -102,92 +104,29 @@
       </div>
     </div>
 
-    <!-- Transaction History Section -->
-    <div>
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-h3">Transaction History</h3>
-      </div>
 
-      <!-- Loading Transactions -->
-      <div v-if="loading && transactions.length === 0" class="card text-center py-12">
-        <p class="text-muted-foreground">Loading transactions...</p>
-      </div>
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
 
-      <!-- Empty State -->
-      <div v-else-if="transactions.length === 0" class="card text-center py-12">
-        <div class="text-4xl mb-4">📜</div>
-        <p class="text-muted-foreground">No transactions yet</p>
-      </div>
-
-      <!-- Transactions Table -->
-      <div v-else class="card overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-muted/50 border-b border-border">
-              <tr>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-foreground">Date</th>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-foreground">Type</th>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-foreground">Description</th>
-                <th class="text-right px-4 py-3 text-sm font-semibold text-foreground">Credits</th>
-                <th class="text-right px-4 py-3 text-sm font-semibold text-foreground">Amount</th>
-                <th class="text-left px-4 py-3 text-sm font-semibold text-foreground">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="transaction in sortedTransactions"
-                :key="transaction.id"
-                class="border-b border-border hover:bg-muted/30 transition-colors"
-              >
-                <td class="px-4 py-3 text-sm text-muted-foreground">
-                  {{ formatDate(transaction.createdAt) }}
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    :class="[
-                      'px-2 py-1 rounded text-xs font-medium',
-                      transaction.type === 'Purchase'
-                        ? 'bg-primary/10 text-primary'
-                        : 'bg-muted text-muted-foreground'
-                    ]"
-                  >
-                    {{ transaction.type }}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-sm text-foreground">
-                  {{ transaction.description || 'N/A' }}
-                </td>
-                <td
-                  :class="[
-                    'px-4 py-3 text-sm font-semibold text-right',
-                    transaction.creditsChanged > 0 ? 'text-primary' : 'text-muted-foreground'
-                  ]"
-                >
-                  {{ transaction.creditsChanged > 0 ? '+' : '' }}{{ transaction.creditsChanged }}
-                </td>
-                <td class="px-4 py-3 text-sm text-muted-foreground text-right">
-                  {{ transaction.totalAmount ? transaction.totalAmount.toFixed(2) + ' ETB' : '-' }}
-                </td>
-                <td class="px-4 py-3">
-                  <span
-                    :class="[
-                      'px-2 py-1 rounded text-xs font-medium',
-                      transaction.status === 'Completed' || transaction.status === 'Success'
-                        ? 'bg-primary/10 text-primary'
-                        : transaction.status === 'Pending'
-                        ? 'bg-yellow-500/10 text-yellow-600'
-                        : 'bg-destructive/10 text-destructive'
-                    ]"
-                  >
-                    {{ transaction.status }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -196,6 +135,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCreditStore } from '../../stores/credit'
 import { creditService } from '../../services/creditService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const creditStore = useCreditStore()
 const route = useRoute() // Call useRoute at the top level
@@ -240,13 +186,16 @@ onMounted(async () => {
 // Handle purchase - initialize payment and redirect to Chapa
 const handlePurchase = async () => {
   if (!creditsToBy.value || creditsToBy.value < 1) {
-    alert('Please enter a valid number of credits')
+    displayError('Please enter a valid number of credits', 'Invalid Amount')
     return
   }
 
-  const confirmed = confirm(
-    `Purchase ${creditsToBy.value} credits for ${totalAmount.value} ETB?\n\nYou will be redirected to Chapa payment gateway.`
-  )
+  const confirmed = await askConfirmation({
+    title: 'Purchase Credits',
+    message: `Purchase ${creditsToBy.value} credits for ${totalAmount.value} ETB?\n\nYou will be redirected to Chapa payment gateway.`,
+    type: 'info',
+    confirmText: 'Continue to Payment'
+  })
   
   if (confirmed) {
     try {
@@ -256,7 +205,7 @@ const handlePurchase = async () => {
       const transactionResponse = await creditService.buyCredits(creditsToBy.value)
       
       if (!transactionResponse || !transactionResponse.creditTransactionId) {
-        alert('Failed to create transaction. Please try again.')
+        displayError('Failed to create transaction. Please try again.', 'Transaction Failed')
         return
       }
       
@@ -274,11 +223,11 @@ const handlePurchase = async () => {
       if (paymentResponse.checkoutUrl) {
         window.location.href = paymentResponse.checkoutUrl
       } else {
-        alert('Payment initialization failed: No checkout URL received')
+        displayError('Payment initialization failed: No checkout URL received', 'Payment Error')
         sessionStorage.removeItem('creditPaymentReference')
       }
     } catch (err) {
-      alert(`Payment initialization failed: ${err.response?.data?.message || err.message}`)
+      displayError(err, 'Payment Initialization Failed')
       sessionStorage.removeItem('creditPaymentReference')
     } finally {
       creditStore.loading = false
@@ -292,7 +241,7 @@ const handlePaymentCallback = async () => {
     // Use the paymentReference we stored (not from URL)
     // The backend parameter is named tx_ref but it expects the paymentReference value
     if (!paymentReference.value) {
-      alert('Payment callback failed: Payment reference not found.')
+      displayError('Payment callback failed: Payment reference not found.', 'Verification Failed')
       return
     }
     
@@ -302,7 +251,7 @@ const handlePaymentCallback = async () => {
     await creditService.verifyPayment(paymentReference.value)
     
     // If we reach here, payment was successful
-    alert('Payment successful! Your credits have been added.')
+    displayError('Payment successful! Your credits have been added.', 'Success', 'success')
     // Refresh balance and transactions
     await creditStore.fetchBalance()
     await creditStore.fetchTransactions()
@@ -311,7 +260,7 @@ const handlePaymentCallback = async () => {
     paymentReference.value = null
   } catch (err) {
     console.error('Payment callback error:', err)
-    alert('Error verifying payment. Please contact support if credits were deducted.')
+    displayError(err, 'Payment Verification Failed')
     paymentReference.value = null
   }
 }

@@ -65,7 +65,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="p-4 rounded-lg bg-destructive/10 text-destructive text-center">
-      {{ error }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Events List -->

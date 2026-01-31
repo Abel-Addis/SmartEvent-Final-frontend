@@ -25,7 +25,9 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-4 border border-destructive bg-destructive/10 rounded-lg">
-      <p class="text-destructive">{{ error }}</p>
+      <p class="text-destructive">
+        {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
+      </p>
     </div>
 
     <!-- Empty State -->
@@ -327,6 +329,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -336,6 +361,13 @@ import { useGatePersonStore } from '@/stores/gatePerson'
 import { ticketScanService } from '@/services/ticketScanService'
 import { useForm } from 'vee-validate'
 import { gatePersonSchema } from '@/validation/authSchemas'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const gatePersonStore = useGatePersonStore()
 
@@ -370,7 +402,6 @@ const assignmentEvents = computed(() => gatePersonStore.assignmentEvents)
 const sortedGatePersons = computed(() => gatePersonStore.sortedGatePersons)
 const loading = computed(() => gatePersonStore.loading)
 const error = computed(() => gatePersonStore.error)
-console.log("gatePersons",gatePersons.value)
 // Fetch gate persons on mount
 onMounted(async () => {
   await gatePersonStore.fetchGatePersons()
@@ -482,30 +513,29 @@ const onSubmit = handleSubmit(async (values) => {
 
   if (result.success) {
     closeModal()
-    alert(`Gate person ${isEditMode.value ? 'updated' : 'created'} successfully!`)
+    displayError(`Gate person ${isEditMode.value ? 'updated' : 'created'} successfully!`, 'Success', 'success')
   } else {
-    alert(`Failed: ${result.message}`)
+    displayError(result.message, 'Failed')
   }
 })
 
 // Delete function
 const handleDelete = async (gatePerson) => {
-  const action = confirm(
-    `Do you want to permanently delete or just deactivate ${gatePerson.fullName}?\n\nClick OK to DEACTIVATE (recommended)\nClick Cancel to go back`
-  )
+  const confirmed = await askConfirmation({
+    title: 'Delete Gate Person',
+    message: `Are you sure you want to permanently delete ${gatePerson.fullName}? This action cannot be undone.`,
+    type: 'danger',
+    confirmText: 'Delete'
+  })
 
-  if (action === false) return
+  if (!confirmed) return
 
-  const hardDelete = confirm(
-    'Click OK to PERMANENTLY DELETE\nClick Cancel to DEACTIVATE instead'
-  )
-
-  const result = await gatePersonStore.deleteGatePerson(gatePerson.userId, hardDelete)
+  const result = await gatePersonStore.deleteGatePerson(gatePerson.userId, true)
 
   if (result.success) {
-    alert(`Gate person ${hardDelete ? 'deleted' : 'deactivated'} successfully!`)
+    displayError(`Gate person deleted successfully!`, 'Success', 'success')
   } else {
-    alert(`Failed: ${result.message}`)
+    displayError(result.message || 'Operation failed', 'Failed')
   }
 }
 
@@ -525,8 +555,7 @@ const openHistoryModal = async (gatePerson) => {
         const logs = await ticketScanService.getLogByUserId(gatePerson.userId)
         historyLogs.value = logs || []
     } catch (err) {
-        console.error("Failed to load history", err)
-        alert("Failed to load history")
+        displayError(err, "Failed to load history")
     } finally {
         loadingHistory.value = false
     }

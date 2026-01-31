@@ -8,8 +8,9 @@
   <div v-else class="space-y-8">
     <!-- Event Hero -->
     <div class="bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl p-8 sm:p-12 relative overflow-hidden">
-      <img v-if="event.bannerImageUrl" :src="event.bannerImageUrl"
-        class="absolute inset-0 w-full h-full object-cover opacity-20" />
+      <img v-if="event.media?.coverImage || event.bannerImageUrl" :src="event.media?.coverImage || event.bannerImageUrl"
+        class="absolute inset-0 w-full h-full object-cover opacity-60 blur-[2px] scale-105" />
+      <div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
       <div class="relative z-10 flex flex-col sm:flex-row items-start justify-between gap-6">
         <div>
           <h1 class="text-h1 font-bold mb-4">
@@ -33,6 +34,11 @@
         :class="['px-4 py-3 font-medium transition-colors border-b-2', activeTab === tab ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground']"
         @click="activeTab = tab">
         {{ tab }}
+      </button>
+      <button v-if="event.media?.additionalImages?.length > 0"
+        :class="['px-4 py-3 font-medium transition-colors border-b-2', activeTab === 'Gallery' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground']"
+        @click="activeTab = 'Gallery'">
+        Gallery
       </button>
     </div>
 
@@ -86,10 +92,26 @@
               No tickets available online.
             </div>
           </div>
-          <router-link :to="'/dashboard/checkout/' + eventId" class="btn-primary w-full py-3 text-center block"
-            v-if="event.ticketTypes && event.ticketTypes.length > 0 && event.ticketTypes.some(t => t.isAvailable && !t.isSoldOut)">
-            Buy Tickets
-          </router-link>
+          <div v-if="event.ticketTypes && event.ticketTypes.length > 0">
+             <router-link 
+              v-if="isTicketSalesStarted && event.ticketTypes.some(t => t.isAvailable && !t.isSoldOut)"
+              :to="'/dashboard/checkout/' + eventId" 
+              class="btn-primary w-full py-3 text-center block">
+              Buy Tickets
+            </router-link>
+            <button 
+              v-else-if="!isTicketSalesStarted"
+              disabled
+              class="w-full py-3 text-center block rounded-lg bg-muted text-muted-foreground cursor-not-allowed font-medium">
+              Sales Start on {{ new Date(event.ticketsaleStart).toLocaleDateString() }}
+            </button>
+            <button 
+              v-else
+              disabled
+              class="w-full py-3 text-center block rounded-lg bg-muted text-muted-foreground cursor-not-allowed font-medium">
+              Unavailable / Sold Out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -130,6 +152,20 @@
             <p class="text-lg font-semibold">{{ event.venue }}</p>
           </div>
           <MapLocationDisplay :location="event.location" :venue="event.venue" />
+        </div>
+      </div>
+
+      <!-- Gallery Tab -->
+      <div v-if="activeTab === 'Gallery'" class="space-y-4">
+        <div class="card">
+          <h4 class="text-h4 font-bold mb-6">Event Gallery</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+             <div v-for="(img, index) in event.media.additionalImages" :key="index"
+               class="rounded-xl overflow-hidden aspect-video border border-border group cursor-pointer relative">
+               <img :src="img" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+             </div>
+          </div>
         </div>
       </div>
 
@@ -229,6 +265,29 @@
     <FeedbackModal :isOpen="showFeedbackModal" :initialRating="userReview?.rating || 0"
       :initialComment="userReview?.comment || ''" :isEditing="isEditingReview" @close="showFeedbackModal = false"
       @submit="handleFeedbackSubmit" />
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -240,6 +299,13 @@ import { feedbackService } from '@/services/feedbackService'
 import { useFavoritesStore } from '@/stores/favorites'
 import FeedbackModal from '@/components/FeedbackModal.vue'
 import MapLocationDisplay from '@/components/MapLocationDisplay.vue'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const route = useRoute()
 const eventId = route.params.id
@@ -266,6 +332,11 @@ const formattedDateRange = computed(() => {
   return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`
 })
 
+const isTicketSalesStarted = computed(() => {
+  if (!event.value || !event.value.ticketsaleStart) return false
+  return new Date() >= new Date(event.value.ticketsaleStart)
+})
+
 const priceDiffPercent = (ticket) => {
   if (!ticket || !ticket.finalPrice || !ticket.basePrice) return ''
   const diff = ((ticket.finalPrice - ticket.basePrice) / ticket.basePrice) * 100
@@ -289,7 +360,7 @@ const loadEventDetails = async () => {
       loadFeedbackSummary()
     ])
   } catch (err) {
-    console.error("Failed to load event details")
+    displayError(err, "Failed to load event details")
   } finally {
     loading.value = false
   }
@@ -302,7 +373,7 @@ const loadFeedbackSummary = async () => {
     const summary = await feedbackService.getEventFeedbackSummary(eventId)
     feedbackSummary.value = summary
   } catch (err) {
-    console.error("Failed to load feedback summary", err)
+    displayError(err, "Failed to load feedback summary")
   }
 }
 
@@ -321,7 +392,8 @@ const checkFeedbackStatus = async () => {
       isEligibleForFeedback.value = !!isEligible
     }
   } catch (err) {
-    console.log("Not eligible or not logged in", err)
+    // Silently handle eligibility check if not logged in
+    console.log("Eligibility check info:", err)
   }
 }
 
@@ -336,7 +408,7 @@ const loadOrganizerReviews = async () => {
     const reviews = await feedbackService.getFeedbacksForOrganizer(event.value.organizerId)
     organizerReviews.value = reviews || []
   } catch (err) {
-    console.error("Failed to load organizer reviews", err)
+    displayError(err, "Failed to load organizer reviews")
   } finally {
     loadingOrganizerReviews.value = false
   }
@@ -366,6 +438,7 @@ const handleFeedbackSubmit = async (payload) => {
     } else {
       await feedbackService.submitFeedback(eventId, payload)
     }
+    displayError(`Feedback ${isEditingReview.value ? 'updated' : 'submitted'} successfully!`, 'Success', 'success')
     // Refresh to show updated review
     await checkFeedbackStatus()
     showFeedbackModal.value = false
@@ -376,21 +449,28 @@ const handleFeedbackSubmit = async (payload) => {
 }
 
 const deleteReview = async () => {
-  if (!confirm("Are you sure you want to delete your review?")) return
+  const confirmed = await askConfirmation({
+    title: 'Delete Review',
+    message: 'Are you sure you want to delete your review? This action cannot be undone.',
+    confirmText: 'Delete Review',
+    type: 'danger'
+  })
+
+  if (!confirmed) return
   try {
     await feedbackService.deleteFeedback(userReview.value.feedbackId)
     userReview.value = null
-    // Check eligibility again (might be eligible to review again? Backend logic decides)
-    // Actually if deleted, and event is still "past", they should be eligible again?
-    // Let's re-check
     await checkFeedbackStatus()
+    displayError('Review deleted successfully', 'Success', 'success')
   } catch (err) {
-    console.error("Failed to delete review", err)
+    displayError(err, "Failed to delete review")
   }
 }
 
 const toggleFavorite = () => {
   favoritesStore.toggleFavorite(eventId)
+  const status = favoritesStore.isFavorite(eventId) ? 'added to' : 'removed from'
+  displayError(`Event ${status} favorites`, 'Success', 'success')
 }
 
 const formatCurrency = (val) => {

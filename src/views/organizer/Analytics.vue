@@ -17,7 +17,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-      {{ error }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Analytics Content -->
@@ -305,6 +305,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -315,6 +326,10 @@ import LineChart from '@/components/charts/LineChart.vue'
 import BarChart from '@/components/charts/BarChart.vue'
 import DoughnutChart from '@/components/charts/DoughnutChart.vue'
 import { organizerService } from '@/services/organizerService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const loading = ref(false)
 const error = ref(null)
@@ -629,8 +644,8 @@ const fetchOverview = async () => {
     const data = await organizerService.getAnalyticsOverview()
     overview.value = data
   } catch (err) {
-    console.error('Failed to fetch overview:', err)
-    error.value = 'Failed to load analytics overview'
+    error.value = err
+    displayError(err, 'Failed to load analytics overview')
   } finally {
     loading.value = false
   }
@@ -642,7 +657,7 @@ const fetchEventsAnalytics = async () => {
     const data = await organizerService.getAnalyticsEvents()
     eventsAnalytics.value = data
   } catch (err) {
-    console.error('Failed to fetch events analytics:', err)
+    displayError(err, 'Failed to fetch events analytics')
   }
 }
 
@@ -653,8 +668,7 @@ const viewEventDetails = async (eventId) => {
     selectedEvent.value = data
     bookedUsers.value = [] // Reset booked users
   } catch (err) {
-    console.error('Failed to fetch event details:', err)
-    error.value = 'Failed to load event details'
+    displayError(err, 'Failed to load event details')
   }
 }
 
@@ -666,8 +680,7 @@ const loadBookedUsers = async (eventId) => {
     const data = await organizerService.getBookedUsers(eventId)
     bookedUsers.value = data
   } catch (err) {
-    console.error('Failed to fetch booked users:', err)
-    error.value = 'Failed to load booked users'
+    displayError(err, 'Failed to load booked users')
   } finally {
     loadingUsers.value = false
   }
@@ -688,8 +701,7 @@ const exportUsers = async (eventId) => {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error('Failed to export users:', err)
-    error.value = 'Failed to export users'
+    displayError(err, 'Failed to export users')
   }
 }
 

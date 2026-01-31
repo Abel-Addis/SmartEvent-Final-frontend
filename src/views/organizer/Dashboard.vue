@@ -33,7 +33,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-      {{ error }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Events Overview -->
@@ -58,49 +58,73 @@
       </div>
 
       <!-- Events List -->
-      <div v-else class="space-y-3">
-        <div v-for="event in events" :key="event.eventId" class="card hover:shadow-md transition-shadow">
-          <div class="flex flex-col gap-4">
-            <!-- Event Header -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
-                  <h4 class="font-semibold text-foreground">
-                    {{ event.title }}
-                  </h4>
-                  <span :class="['px-2 py-0.5 rounded text-xs font-medium', getStatusClass(event.status)]">
-                    {{ event.status }}
-                  </span>
-                </div>
-                <p class="text-sm text-muted-foreground">
-                  {{ event.categoryName }} • {{ formatDate(event.startDate) }}
-                </p>
-                <p class="text-sm text-muted-foreground mt-1">
-                  {{ event.venue }} • Capacity: {{ event.totalCapacity }}
-                </p>
-              </div>
-
-              <!-- Action Buttons -->
-              <div class="flex gap-2 flex-wrap">
-                <button v-if="event.status === 'Draft'" class="btn-primary px-3 py-1.5 text-xs"
-                  @click="publishEvent(event.eventId)">
-                  Publish
-                </button>
-                <router-link :to="`/organizer/events/${event.eventId}/edit`" class="btn-outline px-3 py-1.5 text-xs">
-                  Edit
-                </router-link>
-                <router-link :to="`/organizer/events/${event.eventId}`" class="btn-outline px-3 py-1.5 text-xs">
-                  View Details
-                </router-link>
-                <router-link to="/organizer/analytics" class="btn-outline px-3 py-1.5 text-xs">
-                  Analytics
-                </router-link>
-              </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-for="event in events" :key="event.eventId" class="card p-0 overflow-hidden hover:shadow-lg transition-all group flex flex-col h-full">
+          
+          <!-- Card Header / Image Gallery -->
+          <div class="relative w-full aspect-[4/3] bg-muted">
+             <!-- Main Cover Image -->
+             <img 
+              :src="event.bannerImageUrl" 
+              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            
+            <!-- Additional Images Overlay (if any) -->
+            <div v-if="event.media?.additionalImages?.length" class="absolute bottom-2 right-2 flex gap-1">
+               <div v-for="(img, idx) in event.media.additionalImages.slice(0, 3)" :key="idx" 
+                 class="w-8 h-8 rounded-md overflow-hidden border border-white/50 shadow-sm relative">
+                 <img :src="img" class="w-full h-full object-cover" />
+                 <div v-if="idx === 2 && event.media.additionalImages.length > 3" class="absolute inset-0 bg-black/50 text-white text-[8px] flex items-center justify-center font-bold">
+                   +{{ event.media.additionalImages.length - 3 }}
+                 </div>
+               </div>
             </div>
 
-            <!-- Event Image -->
-            <div v-if="event.bannerImageUrl" class="rounded-lg overflow-hidden">
-              <img :src="event.bannerImageUrl" :alt="event.title" class="w-full h-48 object-cover">
+            <!-- Status Badge -->
+            <div class="absolute top-3 left-3">
+              <span :class="['px-2 py-1 rounded-md text-xs font-bold shadow-sm backdrop-blur-md', getStatusClass(event)]">
+                {{ event.status === 'Published' && new Date(event.endDate) < new Date() ? 'Finished' : event.status }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Card Content -->
+          <div class="p-5 flex flex-col flex-1">
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors" :title="event.title">
+                {{ event.title }}
+              </h4>
+              <button class="text-muted-foreground hover:text-foreground">
+                ⋮
+              </button>
+            </div>
+            
+            <p class="text-sm text-muted-foreground mb-4 line-clamp-2 flex-1">
+              {{ event.categoryName }} • {{ formatDate(event.startDate) }}
+            </p>
+
+            <div class="space-y-3 mt-auto">
+              <div class="flex items-center justify-between text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                 <span>📍 {{ event.venue }}</span>
+                 <span>👥 {{ event.totalCapacity }} Cap</span>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="grid grid-cols-2 gap-2">
+                <router-link :to="`/organizer/events/${event.eventId}`" class="btn-outline py-2 text-xs w-full text-center">
+                  View
+                </router-link>
+                <router-link :to="`/organizer/events/${event.eventId}/edit`" class="btn-outline py-2 text-xs w-full text-center">
+                  Edit
+                </router-link>
+                <router-link :to="`/organizer/event-analytics/${event.eventId}`" class="btn-outline py-2 text-xs w-full text-center">
+                  Analytics
+                </router-link>
+                 <button v-if="event.status === 'Draft'" class="btn-primary py-2 text-xs col-span-2"
+                  @click="publishEvent(event.eventId)">
+                  Publish Now
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -128,6 +152,17 @@
         <p class="text-xs text-muted-foreground">View revenue</p>
       </router-link> -->
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -138,6 +173,10 @@ import StatCard from '@/components/StatCard.vue'
 import { organizerService } from '@/services/organizerService'
 import { eventService } from '@/services/eventService'
 import { useAuthStore } from '@/stores/auth'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -153,7 +192,13 @@ const organizerName = computed(() => {
 
 // Calculate stats
 const stats = computed(() => {
-  const activeEvents = events.value.filter(e => e.status === 'Published').length
+  const now = new Date()
+  
+  // Active = Published AND Not Finished
+  const activeEvents = events.value.filter(e => 
+    e.status === 'Published' && new Date(e.endDate) > now
+  ).length
+  
   const draftEvents = events.value.filter(e => e.status === 'Draft').length
   const publishedEvents = events.value.filter(e => e.status === 'Published').length
 
@@ -174,8 +219,8 @@ const fetchEvents = async () => {
     const response = await organizerService.getDashboardEvents()
     events.value = response
   } catch (err) {
-    console.error('Failed to fetch events:', err)
-    error.value = 'Failed to load events. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to load events')
   } finally {
     loading.value = false
   }
@@ -190,8 +235,8 @@ const publishEvent = async (eventId) => {
     // Refresh events
     await fetchEvents()
   } catch (err) {
-    console.error('Failed to publish event:', err)
-    error.value = 'Failed to publish event. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to publish event')
   }
 }
 
@@ -206,11 +251,16 @@ const formatDate = (dateString) => {
 }
 
 // Get status class
-const getStatusClass = (status) => {
-  if (status === 'Published') {
-    return 'bg-foreground text-background'
+const getStatusClass = (event) => {
+  const status = event.status
+  const isFinished = status === 'Published' && new Date(event.endDate) < new Date()
+
+  if (isFinished) {
+    return 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400'
+  } else if (status === 'Published') {
+    return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
   } else if (status === 'Draft') {
-    return 'bg-secondary text-foreground border border-border'
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
   }
   return 'bg-muted text-muted-foreground'
 }

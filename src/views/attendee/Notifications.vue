@@ -59,6 +59,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -66,20 +77,37 @@
 import { onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useNotificationStore } from '@/stores/notification'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const notificationStore = useNotificationStore()
 const { sortedNotifications, loading } = storeToRefs(notificationStore)
 
 const loadNotifications = async () => {
+  try {
     await notificationStore.fetchNotifications()
+  } catch (err) {
+    displayError(err, 'Failed to load notifications')
+  }
 }
 
 const markRead = async (id) => {
+  try {
     await notificationStore.markAsRead(id)
+  } catch (err) {
+    displayError(err, 'Failed to mark as read')
+  }
 }
 
 const markAllRead = async () => {
+  try {
     await notificationStore.markAllAsRead()
+    displayError('All notifications marked as read', 'Success', 'success')
+  } catch (err) {
+    displayError(err, 'Failed to mark all as read')
+  }
 }
 
 const formatDate = (dateStr) => {

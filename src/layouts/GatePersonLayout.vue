@@ -9,7 +9,7 @@
             !mobileMenuOpen && '-translate-x-full lg:translate-x-0'
         ]">
             <div class="h-16 px-5 border-b border-sidebar-border flex items-center justify-between">
-                <router-link to="/" class="flex items-center gap-3">
+                <router-link to="/scanner" class="flex items-center gap-3">
                     <div
                         class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground flex items-center justify-center font-bold shadow-lg shadow-primary/30">
                         C

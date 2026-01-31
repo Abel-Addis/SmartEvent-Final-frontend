@@ -25,7 +25,9 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="p-4 border border-destructive bg-destructive/10 rounded-lg">
-      <p class="text-destructive">{{ error }}</p>
+      <p class="text-destructive">
+        {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
+      </p>
     </div>
 
     <!-- Empty State -->
@@ -64,6 +66,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -72,6 +85,10 @@
 import { computed, onMounted } from 'vue'
 import { useNotificationStore } from '@/stores/notification'
 import { useRouter } from 'vue-router'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const notificationStore = useNotificationStore()
 const router = useRouter()
@@ -84,7 +101,11 @@ const error = computed(() => notificationStore.error)
 
 // Fetch notifications on mount
 onMounted(async () => {
-  await notificationStore.fetchNotifications()
+  try {
+    await notificationStore.fetchNotifications()
+  } catch (err) {
+    displayError(err, 'Failed to load notifications')
+  }
 })
 
 // Map notification type to icon
@@ -119,7 +140,11 @@ const formatTimestamp = (timestamp) => {
 const toggleRead = async (id) => {
   const notification = notifications.value.find(n => n.id === id)
   if (notification && !notification.isRead) {
-    await notificationStore.markAsRead(id)
+    try {
+      await notificationStore.markAsRead(id)
+    } catch (err) {
+      displayError(err, 'Failed to mark as read')
+    }
   }
   
   // Navigate if referenceKey exists (e.g. for event feedback)
@@ -130,7 +155,11 @@ const toggleRead = async (id) => {
 
 // Mark all as read
 const markAllRead = async () => {
-  await notificationStore.markAllAsRead()
+  try {
+    await notificationStore.markAllAsRead()
+  } catch (err) {
+    displayError(err, 'Failed to mark all as read')
+  }
 }
 </script>
 

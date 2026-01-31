@@ -279,6 +279,15 @@ export const adminService = {
     return response.data;
   },
 
+  /**
+   * Get user payments
+   * @returns {Promise} Array of UserPaymentsDto
+   */
+  async getUserPayments() {
+    const response = await apiClient.get("/Payment/UserPaymnts");
+    return response.data;
+  },
+
   async retrainGlobalModel() {
     const response = await apiClient.post("/admin/recommend/retrain");
     return response.data;

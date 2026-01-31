@@ -25,7 +25,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-      {{ error }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Empty State -->
@@ -81,8 +81,8 @@
               {{ event.totalCapacity }}
             </td>
             <td class="px-6 py-4">
-              <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(event.status)]">
-                {{ event.status }}
+              <span :class="['px-3 py-1 rounded-full text-xs font-medium', getStatusClass(event)]">
+                {{ event.status === 'Published' && new Date(event.endDate) < new Date() ? 'Finished' : event.status }}
               </span>
             </td>
             <td class="px-6 py-4">
@@ -97,6 +97,10 @@
                 <router-link :to="`/organizer/events/${event.eventId}/edit`" class="btn-outline text-xs px-3 py-1">
                   Edit
                 </router-link>
+                <button v-if="event.status === 'Draft'" class="btn-outline text-xs px-3 py-1 text-destructive hover:bg-destructive/10"
+                  @click="handleDeleteDraft(event)">
+                  Delete
+                </button>
               </div>
             </td>
           </tr>
@@ -145,6 +149,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -152,6 +179,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { organizerService } from '@/services/organizerService'
 import { eventService } from '@/services/eventService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const activeFilter = ref('All')
 const events = ref([])
@@ -164,22 +198,44 @@ const publishing = ref(false)
 
 // Filter definitions with counts
 const filters = computed(() => {
+  const now = new Date()
   const all = events.value.length
-  const published = events.value.filter(e => e.status === 'Published').length
+  
+  // Published & Active (EndDate > Now)
+  const published = events.value.filter(e => 
+    e.status === 'Published' && new Date(e.endDate) > now
+  ).length
+  
+  // Drafts
   const drafts = events.value.filter(e => e.status === 'Draft').length
-  const cancelled = events.value.filter(e => e.status === 'Cancelled').length
+  
+  // Finished (Published & EndDate < Now)
+  const finished = events.value.filter(e => 
+    e.status === 'Published' && new Date(e.endDate) < now
+  ).length
 
   return [
     { label: 'All', value: 'All', count: all },
-    { label: 'Published', value: 'Published', count: published },
+    { label: 'Active', value: 'Active', count: published },
     { label: 'Drafts', value: 'Draft', count: drafts },
-    { label: 'Cancelled', value: 'Cancelled', count: cancelled },
+    { label: 'Finished', value: 'Finished', count: finished },
   ]
 })
 
 // Filtered events based on active filter
 const filteredEvents = computed(() => {
+  const now = new Date()
+  
   if (activeFilter.value === 'All') return events.value
+  
+  if (activeFilter.value === 'Active') {
+    return events.value.filter(e => e.status === 'Published' && new Date(e.endDate) > now)
+  }
+  
+  if (activeFilter.value === 'Finished') {
+    return events.value.filter(e => e.status === 'Published' && new Date(e.endDate) < now)
+  }
+  
   return events.value.filter(e => e.status === activeFilter.value)
 })
 
@@ -192,8 +248,8 @@ const fetchEvents = async () => {
     const response = await organizerService.getDashboardEvents()
     events.value = response
   } catch (err) {
-    console.error('Failed to fetch events:', err)
-    error.value = 'Failed to load events. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to load events')
   } finally {
     loading.value = false
   }
@@ -237,11 +293,34 @@ const confirmPublish = async () => {
     // Refresh the events list
     await fetchEvents()
     closePublishModal()
+    displayError('Event published successfully!', 'Success', 'success')
   } catch (err) {
-    console.error('Failed to publish event:', err)
-    error.value = 'Failed to publish event. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to publish event')
   } finally {
     publishing.value = false
+  }
+}
+
+// Delete draft event
+const handleDeleteDraft = async (event) => {
+  const confirmed = await askConfirmation({
+    title: 'Delete Draft',
+    message: `Are you sure you want to delete "${event.title}"? This action cannot be undone.`,
+    type: 'danger',
+    confirmText: 'Delete'
+  })
+  
+  if (!confirmed) return
+
+  try {
+    await eventService.deleteDraftEvent(event.eventId)
+    // Refresh the events list
+    await fetchEvents()
+    displayError('Draft deleted successfully', 'Deleted', 'success')
+  } catch (err) {
+    error.value = err
+    displayError(err, 'Failed to delete event')
   }
 }
 
@@ -257,15 +336,20 @@ const formatDate = (dateString) => {
 }
 
 // Get status class
-const getStatusClass = (status) => {
-  if (status === 'Published') {
-    return 'bg-foreground text-background'
+const getStatusClass = (event) => {
+  const status = event.status
+  const isFinished = status === 'Published' && new Date(event.endDate) < new Date()
+
+  if (isFinished) {
+    return 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-400'
+  } else if (status === 'Published') {
+    return 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400'
   } else if (status === 'Draft') {
-    return 'bg-muted text-muted-foreground'
+    return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400'
   } else if (status === 'Cancelled') {
-    return 'bg-destructive/10 text-destructive'
+    return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'
   }
-  return 'bg-muted text-muted-foreground'
+  return 'bg-gray-100 text-gray-600'
 }
 
 // Fetch events on mount

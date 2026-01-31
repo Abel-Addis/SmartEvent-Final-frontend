@@ -95,6 +95,17 @@
         Browse Events
       </router-link>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -103,6 +114,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFavoritesStore } from '@/stores/favorites'
 import { attendeeService } from '@/services/attendeeService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const router = useRouter()
 const favoritesStore = useFavoritesStore()
@@ -131,8 +146,8 @@ const fetchEvents = async () => {
       PageSize: 100 // Get a large set to ensure we have all favorited events
     })
     allEvents.value = result.items || []
-  } catch (error) {
-    console.error('Failed to fetch events:', error)
+  } catch (err) {
+    displayError(err, 'Failed to fetch events')
     allEvents.value = []
   } finally {
     loading.value = false

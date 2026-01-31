@@ -121,12 +121,42 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { categoryService } from '@/services/categoryService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const showAddCategory = ref(false)
 const editingId = ref(null)
@@ -178,7 +208,7 @@ const fetchCategories = async () => {
       isDefault: c.name ? defaultCategoryNames.has(c.name.toLowerCase()) : false,
     }))
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to load categories')
+    displayError(err, 'Failed to load categories')
   } finally {
     loading.value = false
   }
@@ -188,7 +218,7 @@ const editCategory = (id) => {
   const category = categories.value.find(c => c.id === id)
   if (category) {
     if (category.isDefault) {
-      alert('Default categories cannot be edited.')
+      displayError('Default categories cannot be edited.')
       return
     }
     newCategory.value = { name: category.name, icon: category.icon, description: category.description }
@@ -198,21 +228,27 @@ const editCategory = (id) => {
 }
 
 const deleteCategory = async (id) => {
-  const confirmed = confirm('Are you sure you want to delete this category?')
+  const confirmed = await askConfirmation({
+    title: 'Delete Category',
+    message: 'Are you sure you want to delete this category? This action cannot be undone.',
+    confirmText: 'Delete',
+    type: 'danger'
+  })
+  
   if (!confirmed) return
 
   try {
     const category = categories.value.find(c => c.id === id)
     if (category?.isDefault) {
-      alert('Default categories cannot be deleted.')
+      displayError('Default categories cannot be deleted.', 'Cannot Delete', 'warning')
       return
     }
     saving.value = true
     await categoryService.deleteCategory(id)
     categories.value = categories.value.filter(c => c.id !== id)
-    alert('Category deleted successfully')
+    displayError('Category deleted successfully!', 'Success', 'success')
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to delete category')
+    displayError(err, 'Failed to delete category')
   } finally {
     saving.value = false
   }
@@ -220,7 +256,7 @@ const deleteCategory = async (id) => {
 
 const saveCategory = async () => {
   if (!newCategory.value.name?.trim()) {
-    alert('Category name is required')
+    displayError('Category name is required')
     return
   }
 
@@ -236,7 +272,6 @@ const saveCategory = async () => {
       categories.value = categories.value.map(c =>
         c.id === editingId.value ? { ...c, ...updated, icon: newCategory.value.icon || c.icon, description: updated.description || c.description } : c
       )
-      alert('Category updated successfully')
     } else {
       const created = await categoryService.addCategory(payload)
       categories.value.push({
@@ -246,12 +281,13 @@ const saveCategory = async () => {
         icon: newCategory.value.icon || defaultIcon(created.name),
         events: 0,
       })
-      alert('Category added successfully')
     }
+    const message = editingId.value ? 'Category updated successfully!' : 'Category created successfully!'
+    displayError(message, 'Success', 'success')
     resetForm()
     showAddCategory.value = false
   } catch (err) {
-    alert(err.response?.data?.message || err.message || 'Failed to save category')
+    displayError(err, 'Failed to save category')
   } finally {
     saving.value = false
   }

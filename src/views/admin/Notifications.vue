@@ -174,6 +174,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -181,6 +204,13 @@
 import { ref, watch, onMounted } from 'vue'
 import { adminService } from '@/services/adminService'
 import { useNotificationStore } from '@/stores/notification'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const tabs = [
   { id: 'broadcast', label: '📢 Broadcast' },
@@ -244,8 +274,13 @@ const loadInbox = async () => {
   loadingInbox.value = false
 }
 
-const handleMarkAllRead = async () => {
-  await notificationStore.markAllAsRead()
+const markAllRead = async () => {
+  try {
+    await notificationStore.markAllAsRead()
+    displayError('All notifications marked as read', 'Success', 'success')
+  } catch (err) {
+    displayError(err, 'Failed to mark all as read')
+  }
   await loadInbox()
 }
 
@@ -261,16 +296,22 @@ watch(activeTab, (newTab) => {
 
 // Actions
 const sendBroadcast = async () => {
-  if(!confirm("Are you sure you want to send this broadcast to ALL users?")) return
+  const confirmed = await askConfirmation({
+    title: 'Confirm Broadcast',
+    message: 'Are you sure you want to send this broadcast to ALL users? This action cannot be undone.',
+    confirmText: 'Send Broadcast',
+    type: 'warning'
+  })
+  
+  if (!confirmed) return
   
   sending.value = true
   try {
     await adminService.sendBroadcast(broadcastForm.value)
-    alert("Broadcast sent successfully!")
     broadcastForm.value = { title: '', message: '' }
+    // We can use a success toast here if we had one, but for now we'll just be silent or use info type error
   } catch (err) {
-    console.error(err)
-    alert("Failed to send broadcast")
+    displayError(err, 'Failed to send broadcast')
   } finally {
     sending.value = false
   }
@@ -284,12 +325,10 @@ const sendDirect = async () => {
       title: directForm.value.title,
       message: directForm.value.message
     })
-    alert(`Message sent to ${selectedUserIds.value.length} users!`)
     directForm.value = { title: '', message: '' }
     selectedUserIds.value = []
   } catch (err) {
-    console.error(err)
-    alert("Failed to send message")
+    displayError(err, 'Failed to send message')
   } finally {
     sending.value = false
   }

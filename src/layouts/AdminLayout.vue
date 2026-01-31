@@ -9,7 +9,7 @@
     ]">
       <!-- Brand -->
       <div class="h-16 px-5 border-b border-sidebar-border flex items-center justify-between">
-        <router-link to="/" class="flex items-center gap-3">
+        <router-link to="/admin/" class="flex items-center gap-3">
           <div
             class="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
             C
@@ -31,6 +31,7 @@
         <nav-item to="/admin/categories" icon="📂" label="Categories" />
         <nav-item to="/admin/reports" icon="📄" label="Reports" />
         <nav-item to="/admin/notifications" icon="📢" label="Notifications" />
+        <nav-item to="/admin/settings" icon="⚙️" label="Settings" />
       </nav>
 
       <!-- Profile -->

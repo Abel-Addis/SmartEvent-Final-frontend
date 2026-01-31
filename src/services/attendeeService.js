@@ -12,13 +12,13 @@ export const attendeeService = {
   async getUpcomingEvents(params = {}) {
     const query = new URLSearchParams(params).toString();
     const result = await apiClient.get(
-      `/EventBrowsing/upcomingEvents?${query}`
+      `/EventBrowsing/upcomingEvents?${query}`,
     );
     return result.data;
   },
 
   async getRecommendations() {
-    const result = await apiClient.get('/recommend/getRecommendationForUser');
+    const result = await apiClient.get("/recommend/getRecommendationForUser");
     return result.data;
   },
 
@@ -27,10 +27,15 @@ export const attendeeService = {
     return result.data;
   },
 
+  async getEventById(eventId) {
+    const result = await apiClient.get(`/events/get-event-by-id/${eventId}`);
+    return result.data;
+  },
+
   async searchEvents(searchPayload) {
     const result = await apiClient.post(
       `/EventBrowsing/Eventsearch`,
-      searchPayload
+      searchPayload,
     );
     return result.data;
   },
@@ -40,7 +45,7 @@ export const attendeeService = {
   async createBooking(bookingPayload) {
     const result = await apiClient.post(
       `/bookings/create-booking`,
-      bookingPayload
+      bookingPayload,
     );
     return result.data;
   },
@@ -52,7 +57,7 @@ export const attendeeService = {
 
   async getBookingById(bookingId) {
     const result = await apiClient.get(
-      `/bookings/get-booking-by-id/${bookingId}`
+      `/bookings/get-booking-by-id/${bookingId}`,
     );
     return result.data;
   },

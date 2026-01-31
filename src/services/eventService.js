@@ -1,4 +1,4 @@
-import apiClient from './api'
+import apiClient from "./api";
 
 export const eventService = {
   /**
@@ -7,12 +7,12 @@ export const eventService = {
    * @returns {Promise} Created event data
    */
   async createEvent(formData) {
-    const response = await apiClient.post('/events/create-event', formData, {
+    const response = await apiClient.post("/events/create-event", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
-    })
-    return response.data
+    });
+    return response.data;
   },
 
   /**
@@ -22,8 +22,11 @@ export const eventService = {
    * @returns {Promise}
    */
   async addTicketType(eventId, ticketData) {
-    const response = await apiClient.post(`/events/add-ticket-type-to-event/${eventId}`, ticketData)
-    return response.data
+    const response = await apiClient.post(
+      `/events/add-ticket-type-to-event/${eventId}`,
+      ticketData,
+    );
+    return response.data;
   },
 
   /**
@@ -33,8 +36,11 @@ export const eventService = {
    * @returns {Promise}
    */
   async addPricingRule(ticketTypeId, ruleData) {
-    const response = await apiClient.post(`/events/add-pricing-rule-to-ticket-type/${ticketTypeId}`, ruleData)
-    return response.data
+    const response = await apiClient.post(
+      `/events/add-pricing-rule-to-ticket-type/${ticketTypeId}`,
+      ruleData,
+    );
+    return response.data;
   },
 
   /**
@@ -44,12 +50,16 @@ export const eventService = {
    * @returns {Promise}
    */
   async updateEvent(eventId, formData) {
-    const response = await apiClient.put(`/events/update-event/${eventId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
+    const response = await apiClient.put(
+      `/events/update-event/${eventId}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       },
-    })
-    return response.data
+    );
+    return response.data;
   },
 
   /**
@@ -59,8 +69,11 @@ export const eventService = {
    * @returns {Promise}
    */
   async updateTicketType(ticketTypeId, ticketData) {
-    const response = await apiClient.put(`/events/update-ticket-type/${ticketTypeId}`, ticketData)
-    return response.data
+    const response = await apiClient.put(
+      `/events/update-ticket-type/${ticketTypeId}`,
+      ticketData,
+    );
+    return response.data;
   },
 
   /**
@@ -70,8 +83,10 @@ export const eventService = {
    * @returns {Promise}
    */
   async setTicketTypeStatus(ticketTypeId, isActive) {
-    const response = await apiClient.patch(`/events/set-active-status-ticket/${ticketTypeId}?isActive=${isActive}`)
-    return response.data
+    const response = await apiClient.patch(
+      `/events/set-active-status-ticket/${ticketTypeId}?isActive=${isActive}`,
+    );
+    return response.data;
   },
 
   /**
@@ -80,8 +95,10 @@ export const eventService = {
    * @returns {Promise}
    */
   async removeTicketType(ticketTypeId) {
-    const response = await apiClient.delete(`/events/remove-ticket-type/${ticketTypeId}`)
-    return response.data
+    const response = await apiClient.delete(
+      `/events/remove-ticket-type/${ticketTypeId}`,
+    );
+    return response.data;
   },
 
   /**
@@ -91,8 +108,11 @@ export const eventService = {
    * @returns {Promise}
    */
   async updatePricingRule(ruleId, ruleData) {
-    const response = await apiClient.put(`/events/update-pricing-rule/${ruleId}`, ruleData)
-    return response.data
+    const response = await apiClient.put(
+      `/events/update-pricing-rule/${ruleId}`,
+      ruleData,
+    );
+    return response.data;
   },
 
   /**
@@ -102,8 +122,10 @@ export const eventService = {
    * @returns {Promise}
    */
   async setPricingRuleStatus(ruleId, isActive) {
-    const response = await apiClient.patch(`/events/set-status/${ruleId}?isActive=${isActive}`)
-    return response.data
+    const response = await apiClient.patch(
+      `/events/set-status/${ruleId}?isActive=${isActive}`,
+    );
+    return response.data;
   },
 
   /**
@@ -112,8 +134,10 @@ export const eventService = {
    * @returns {Promise}
    */
   async removePricingRule(ruleId) {
-    const response = await apiClient.delete(`/events/remove-pricing-rule/${ruleId}`)
-    return response.data
+    const response = await apiClient.delete(
+      `/events/remove-pricing-rule/${ruleId}`,
+    );
+    return response.data;
   },
 
   /**
@@ -122,8 +146,8 @@ export const eventService = {
    * @returns {Promise}
    */
   async publishEvent(eventId) {
-    const response = await apiClient.post(`/events/publish-event/${eventId}`)
-    return response.data
+    const response = await apiClient.post(`/events/publish-event/${eventId}`);
+    return response.data;
   },
 
   /**
@@ -132,8 +156,8 @@ export const eventService = {
    * @returns {Promise}
    */
   async getEventById(eventId) {
-    const response = await apiClient.get(`/events/get-event-by-id/${eventId}`)
-    return response.data
+    const response = await apiClient.get(`/events/get-event-by-id/${eventId}`);
+    return response.data;
   },
 
   /**
@@ -142,8 +166,10 @@ export const eventService = {
    * @returns {Promise}
    */
   async getOrganizerEvents(organizerId) {
-    const response = await apiClient.get(`/events/get-events-by-organizer/${organizerId}`)
-    return response.data
+    const response = await apiClient.get(
+      `/events/get-events-by-organizer/${organizerId}`,
+    );
+    return response.data;
   },
 
   /**
@@ -151,8 +177,8 @@ export const eventService = {
    * @returns {Promise}
    */
   async getOrganizerDashboardEvents() {
-    const response = await apiClient.get('/organizer/dashboard/my-events')
-    return response.data
+    const response = await apiClient.get("/organizer/dashboard/my-events");
+    return response.data;
   },
 
   /**
@@ -160,8 +186,8 @@ export const eventService = {
    * @returns {Promise}
    */
   async getDefaultTicketTypes() {
-    const response = await apiClient.get('/events/get-default-ticket-types')
-    return response.data
+    const response = await apiClient.get("/events/get-default-ticket-types");
+    return response.data;
   },
 
   /**
@@ -169,8 +195,19 @@ export const eventService = {
    * @returns {Promise}
    */
   async getDefaultPricingRules() {
-    const response = await apiClient.get('/events/get-default-pricing-rules')
-    return response.data
+    const response = await apiClient.get("/events/get-default-pricing-rules");
+    return response.data;
+  },
+
+  /**
+   * Get all event categories
+   * @returns {Promise} List of categories
+   */
+  async getCategories() {
+    const response = await apiClient.get(
+      "/event-categories/get-all-categories",
+    );
+    return response.data;
   },
 
   /**
@@ -179,8 +216,21 @@ export const eventService = {
    * @returns {Promise}
    */
   async postEventToTelegram(eventId) {
-    const response = await apiClient.post(`/events/post-event-Telgram/${eventId}`)
-    return response.data
+    const response = await apiClient.post(
+      `/events/post-event-Telgram/${eventId}`,
+    );
+    return response.data;
   },
-}
 
+  /**
+   * Delete draft event
+   * @param {string} eventId - Event ID
+   * @returns {Promise}
+   */
+  async deleteDraftEvent(eventId) {
+    const response = await apiClient.delete(
+      `/events/delete-draft-event?eventId=${eventId}`,
+    );
+    return response.data;
+  },
+};

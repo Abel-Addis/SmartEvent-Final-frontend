@@ -4,11 +4,17 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { useForm } from 'vee-validate'
 import { loginSchema } from '../../validation/authSchemas'
+import ThemeToggle from '../../components/ThemeToggle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const errorMessage = ref('')
 const rememberMe = ref(false)
+
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage: toastMessage, errorDetail, errorStatusCode, displayError, closeError } = useErrorNotification()
 
 const { handleSubmit, errors, defineField } = useForm({
   validationSchema: loginSchema
@@ -45,17 +51,23 @@ const handleLogin = handleSubmit(async (values) => {
       errorMessage.value = result.message || 'Login failed. Please check your credentials.'
     }
   } catch (error) {
-    errorMessage.value = 'An error occurred. Please try again.'
+    errorMessage.value = error.response?.data?.error || error.response?.data?.message || 'An error occurred. Please try again.'
+    displayError(error, 'An unexpected error occurred during login')
     console.error('Login error:', error)
   }
 })
 </script>
 
 <template>
-  <div class="relative min-h-screen flex items-center justify-center bg-[#02040a] px-4 py-10 overflow-hidden text-white font-sans selection:bg-indigo-500/30">
+  <div class="relative min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#02040a] px-4 py-10 overflow-hidden text-gray-900 dark:text-white font-sans selection:bg-indigo-500/30 transition-colors duration-300">
     
+    <!-- Theme Toggle -->
+    <div class="absolute top-4 right-4 z-50">
+      <ThemeToggle />
+    </div>
+
     <!-- Ambient Background Effects -->
-    <div class="fixed inset-0 z-0 pointer-events-none">
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
        <div class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px]" />
        <div class="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px]" />
     </div>
@@ -70,45 +82,45 @@ const handleLogin = handleSubmit(async (values) => {
         <h1 class="text-3xl font-bold tracking-tight">
           Welcome back
         </h1>
-        <p class="text-slate-400">
+        <p class="text-gray-500 dark:text-slate-400">
           Enter your credentials to access your account
         </p>
       </div>
 
       <!-- Login Card -->
-      <div class="rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-8 shadow-2xl">
+      <div class="rounded-3xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/[0.02] backdrop-blur-xl p-8 shadow-2xl transition-colors duration-300">
         <form class="space-y-6" @submit.prevent="handleLogin">
           <!-- Error Message -->
           <div v-if="errorMessage"
-            class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-3">
+            class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-200 text-sm flex items-center gap-3">
             <span class="text-lg">⚠️</span>
             {{ errorMessage }}
           </div>
 
           <!-- Email -->
           <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-300 ml-1">Email Address</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 ml-1">Email Address</label>
             <div class="relative group">
               <input v-model="email" v-bind="emailAttrs" type="email" placeholder="name@example.com" 
-                class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50"
+                class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50"
                 :class="{'border-red-500/50 focus:border-red-500 focus:ring-red-500': errors.email}" 
                 :disabled="authStore.loading">
             </div>
-            <p v-if="errors.email" class="text-xs text-red-400 ml-1">{{ errors.email }}</p>
+            <p v-if="errors.email" class="text-xs text-red-500 dark:text-red-400 ml-1">{{ errors.email }}</p>
           </div>
 
           <!-- Password -->
           <div class="space-y-2">
              <div class="flex items-center justify-between ml-1">
-              <label class="block text-sm font-medium text-slate-300">Password</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">Password</label>
             </div>
             <div class="relative">
               <input v-model="password" v-bind="passwordAttrs" type="password" placeholder="••••••••" 
-                class="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50"
+                class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50"
                 :class="{'border-red-500/50 focus:border-red-500 focus:ring-red-500': errors.password}" 
                 :disabled="authStore.loading">
             </div>
-            <p v-if="errors.password" class="text-xs text-red-400 ml-1">{{ errors.password }}</p>
+            <p v-if="errors.password" class="text-xs text-red-500 dark:text-red-400 ml-1">{{ errors.password }}</p>
           </div>
 
           <!-- Remember & Forgot -->
@@ -116,12 +128,12 @@ const handleLogin = handleSubmit(async (values) => {
             <label class="flex items-center gap-2 cursor-pointer group">
               <div class="relative flex items-center">
                 <input v-model="rememberMe" type="checkbox"
-                  class="peer h-4 w-4 rounded border-white/20 bg-white/5 text-indigo-600 focus:ring-offset-0 focus:ring-indigo-500/50 cursor-pointer transition-all" 
+                  class="peer h-4 w-4 rounded border-gray-300 dark:border-white/20 bg-gray-50 dark:bg-white/5 text-indigo-600 focus:ring-offset-0 focus:ring-indigo-500/50 cursor-pointer transition-all" 
                   :disabled="authStore.loading">
               </div>
-              <span class="text-slate-400 group-hover:text-slate-300 transition-colors">Remember me</span>
+              <span class="text-gray-500 dark:text-slate-400 group-hover:text-gray-700 dark:group-hover:text-slate-300 transition-colors">Remember me</span>
             </label>
-            <router-link to="/forgot-password" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">
+            <router-link to="/forgot-password" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 hover:underline transition-colors">
               Forgot password?
             </router-link>
           </div>
@@ -135,17 +147,17 @@ const handleLogin = handleSubmit(async (values) => {
           <!-- Divider -->
           <div class="relative py-2">
             <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-white/10"></div>
+              <div class="w-full border-t border-gray-200 dark:border-white/10"></div>
             </div>
             <div class="relative flex justify-center text-xs uppercase">
-              <span class="bg-[#02040a] px-3 text-slate-500">Or continue with</span>
+              <span class="bg-white dark:bg-[#02040a] px-3 text-gray-400 dark:text-slate-500">Or continue with</span>
             </div>
           </div>
            
            <!-- Sign Up Link -->
-          <p class="text-center text-sm text-slate-400">
+          <p class="text-center text-sm text-gray-500 dark:text-slate-400">
             Don't have an account?
-            <router-link to="/signup" class="text-indigo-400 hover:text-indigo-300 font-medium hover:underline transition-colors">
+            <router-link to="/signup" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 font-medium hover:underline transition-colors">
               Create free account
             </router-link>
           </p>
@@ -153,11 +165,21 @@ const handleLogin = handleSubmit(async (values) => {
       </div>
        
        <!-- Footer Simple -->
-       <div class="mt-8 text-center text-xs text-slate-600">
+       <div class="mt-8 text-center text-xs text-gray-500 dark:text-slate-600">
         &copy; 2025 Convene.
        </div>
 
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :message="toastMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 

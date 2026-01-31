@@ -113,6 +113,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -122,6 +133,10 @@ import StatCard from '../../components/StatCard.vue'
 import EventCard from '../../components/EventCard.vue'
 import { attendeeService } from '../../services/attendeeService'
 import { useAuthStore } from '../../stores/auth'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const authStore = useAuthStore()
 const upcomingEvents = ref([])
@@ -217,7 +232,7 @@ const handleSearch = async () => {
     })
     searchResults.value = result.items || []
   } catch (err) {
-    alert("Search failed")
+    displayError(err, "Search failed")
   } finally {
     searching.value = false
   }

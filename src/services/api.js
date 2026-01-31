@@ -2,13 +2,14 @@ import axios from "axios";
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL, // Backend API base URL
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ||
+    "https://convene-backend-7whb.onrender.com/api", // Backend API base URL
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 10000, // 10 seconds timeout
+  timeout: 60000, // 10 seconds timeout
 });
-console.log(import.meta.env.VITE_API_BASE_URL);
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(

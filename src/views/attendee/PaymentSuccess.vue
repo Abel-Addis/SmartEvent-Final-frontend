@@ -19,7 +19,9 @@
       <div v-else class="space-y-4">
         <div class="text-6xl">⚠️</div>
         <h2 class="text-h2 font-bold text-destructive">Payment Verification Failed</h2>
-        <p class="text-muted-foreground">{{ error }}</p>
+        <p class="text-muted-foreground">
+          {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'Verification failed') }}
+        </p>
         <div class="flex gap-2 justify-center mt-4">
           <router-link to="/dashboard" class="btn-outline">
             Go Home
@@ -30,6 +32,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
@@ -37,6 +50,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { attendeeService } from '../../services/attendeeService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const route = useRoute()
 const router = useRouter()
@@ -67,8 +84,8 @@ const verify = async () => {
       error.value = "Payment verification returned false."
     }
   } catch (err) {
-    console.error(err)
-    error.value = err.message || "Verification failed."
+    error.value = err
+    displayError(err, "Verification failed")
   } finally {
     loading.value = false
   }

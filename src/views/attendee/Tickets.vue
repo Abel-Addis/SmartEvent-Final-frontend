@@ -165,6 +165,29 @@
             </div>
         </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -172,6 +195,13 @@
 import { ref, onMounted } from 'vue'
 import { attendeeService } from '@/services/attendeeService'
 import QrcodeVue from 'qrcode.vue'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const bookings = ref([])
 const loading = ref(true)
@@ -191,7 +221,7 @@ const fetchBookings = async () => {
     const data = await attendeeService.getMyBookings()
     bookings.value = data || []
   } catch (err) {
-    console.error("Failed to fetch bookings", err)
+    displayError(err, "Failed to fetch bookings")
   } finally {
     loading.value = false
   }
@@ -207,7 +237,7 @@ const viewDetails = async (booking) => {
         const tickets = await attendeeService.getTicketsForBooking(booking.bookingId)
         selectedTickets.value = tickets
     } catch (err) {
-        console.error("Failed to fetch tickets", err)
+        displayError(err, "Failed to fetch tickets")
     } finally {
         detailsLoading.value = false
     }
@@ -225,15 +255,21 @@ const canCancel = (booking) => {
 }
 
 const cancelBooking = async (id) => {
-  if(!confirm("Are you sure you want to cancel this booking? This action cannot be undone.")) return
+  const confirmed = await askConfirmation({
+    title: 'Cancel Booking',
+    message: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+    confirmText: 'Cancel Booking',
+    type: 'danger'
+  })
+
+  if (!confirmed) return
   
   try {
     await attendeeService.cancelBooking(id)
-    alert("Booking cancelled successfully")
     await fetchBookings() // Refresh list
     closeDetails() // Close modal
   } catch (err) {
-    alert(err.response?.data?.message || "Failed to cancel booking")
+    displayError(err, "Failed to cancel booking")
   }
 }
 

@@ -84,7 +84,7 @@
   --secondary-foreground: oklch(0.98 0 0);
 
   --muted: oklch(0.21 0 0);
-  --muted-foreground: oklch(0.60 0 0);
+  --muted-foreground: oklch(0.6 0 0);
   /* Medium gray */
 
   --accent: oklch(0.21 0 0);
@@ -101,7 +101,7 @@
 
   /* Sidebar Colors (Dark) */
   --sidebar: oklch(0.14 0 0);
-  --sidebar-foreground: oklch(0.70 0 0);
+  --sidebar-foreground: oklch(0.7 0 0);
   --sidebar-primary: oklch(0.98 0 0);
   --sidebar-primary-foreground: oklch(0.12 0 0);
   --sidebar-accent: oklch(0.21 0 0);
@@ -151,7 +151,13 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    font-family:
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      "Roboto",
+      sans-serif;
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
@@ -160,7 +166,6 @@
 }
 
 @layer components {
-
   /* Typography */
   .text-h1 {
     @apply text-[32px] font-bold tracking-tight text-foreground leading-tight;
@@ -195,7 +200,7 @@
   }
 
   .btn-outline {
-    @apply inline-flex items-center justify-center px-4 py-2 border rounded-xl text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-background;
+    @apply inline-flex items-center justify-center px-4 py-2 border rounded-xl text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-transparent;
     border-color: var(--border);
     color: var(--foreground);
   }
@@ -222,15 +227,15 @@
     font-size: 0.95rem;
     font-weight: 600;
     letter-spacing: -0.01em;
-    border: 1px solid var(--border);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+    border: 1.5px solid var(--border);
+    background: transparent;
     color: var(--foreground);
     transition: all 150ms ease;
   }
 
   .btn-outline:hover {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 4px var(--glow-1);
+    border-color: var(--foreground);
+    background: var(--accent);
   }
 
   .btn-ghost {
@@ -310,7 +315,6 @@
 
 /* Minimal Animations */
 @keyframes float {
-
   0%,
   100% {
     transform: translateY(0px);

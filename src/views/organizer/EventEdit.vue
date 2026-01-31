@@ -8,7 +8,7 @@
         <!-- Error Message -->
         <div v-if="errorMessage"
             class="mb-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-            {{ errorMessage }}
+            {{ typeof errorMessage === 'string' ? errorMessage : (errorMessage.response?.data?.error || errorMessage.message || 'An error occurred') }}
         </div>
 
         <!-- Edit Form -->
@@ -31,6 +31,16 @@
                 <div>
                     <label class="block text-sm font-medium mb-2">Description</label>
                     <textarea v-model="formData.description" rows="4" class="input-field w-full" :disabled="saving" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Category *</label>
+                    <select v-model="formData.categoryId" class="input-field w-full" :disabled="saving">
+                        <option value="" disabled>Select a category</option>
+                        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                            {{ cat.name }}
+                        </option>
+                    </select>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -61,6 +71,35 @@
                         <label class="block text-sm font-medium mb-2">Event End Date *</label>
                         <input v-model="formData.endDate" type="datetime-local" class="input-field w-full"
                             :disabled="saving">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Ticket Sales Start</label>
+                        <input v-model="formData.ticketSalesStart" type="datetime-local" class="input-field w-full"
+                            :disabled="saving">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Ticket Sales End</label>
+                        <input v-model="formData.ticketSalesEnd" type="datetime-local" class="input-field w-full"
+                            :disabled="saving">
+                    </div>
+                </div>
+
+                <div class="space-y-4 pt-4 border-t border-border">
+                    <h3 class="font-semibold">Media</h3>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Update Cover Image</label>
+                        <input type="file" accept="image/*" class="input-field w-full" @change="handleCoverImageChange" :disabled="saving">
+                        <p class="text-xs text-muted-foreground mt-1">Leave empty to keep current image</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Add Additional Images</label>
+                        <input type="file" accept="image/*" multiple class="input-field w-full" @change="handleAdditionalImagesChange" :disabled="saving">
                     </div>
                 </div>
 
@@ -289,6 +328,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- Error Notification -->
+        <ErrorNotification
+          :show="showError"
+          :title="errorTitle"
+          :type="errorType"
+          :message="errorMessageNotify"
+          :detail="errorDetail"
+          :status-code="errorStatusCode"
+          @close="closeError"
+        />
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal
+          :show="showConfirm"
+          :title="confirmTitle"
+          :message="confirmMessage"
+          :type="confirmType"
+          :confirm-text="confirmButtonText"
+          :loading="confirmLoading"
+          @confirm="onConfirm"
+          @cancel="onCancel"
+        />
     </div>
 </template>
 
@@ -296,25 +358,50 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventService } from '@/services/eventService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { 
+  showError, 
+  errorTitle, 
+  errorMessage: errorMessageNotify, 
+  errorDetail, 
+  errorStatusCode, 
+  errorType,
+  displayError, 
+  closeError 
+} = useErrorNotification()
+
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const route = useRoute()
 const router = useRouter()
 
 const eventId = route.params.id
 const event = ref(null)
+const categories = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
+
+// File inputs
+const coverImageFile = ref(null)
+const additionalImagesFiles = ref([])
 
 // Form data
 const formData = reactive({
     title: '',
     description: '',
+    categoryId: '',
     venue: '',
     location: '',
     totalCapacity: 0,
     startDate: '',
-    endDate: ''
+    endDate: '',
+    ticketSalesStart: '',
+    ticketSalesEnd: ''
 })
 
 // Ticket modal
@@ -342,29 +429,49 @@ const ruleForm = reactive({
     priceIncreasePercent: 0
 })
 
-// Fetch event
-const fetchEvent = async () => {
+// Fetch event and categories
+const loadData = async () => {
     loading.value = true
     errorMessage.value = ''
 
     try {
-        const response = await eventService.getEventById(eventId)
-        event.value = response
+        const [eventData, categoriesData] = await Promise.all([
+            eventService.getEventById(eventId),
+            eventService.getCategories()
+        ])
+        
+        event.value = eventData
+        categories.value = categoriesData
 
         // Populate form
-        formData.title = response.title
-        formData.description = response.description || ''
-        formData.venue = response.venue || ''
-        formData.location = response.location || ''
-        formData.totalCapacity = response.totalCapacity
-        formData.startDate = formatDateTimeLocal(response.startDate)
-        formData.endDate = formatDateTimeLocal(response.endDate)
+        formData.title = eventData.title
+        formData.description = eventData.description || ''
+        formData.categoryId = eventData.categoryId // Ensure backend returns this, otherwise might need matching
+        formData.venue = eventData.venue || ''
+        formData.location = eventData.location || ''
+        formData.totalCapacity = eventData.totalCapacity
+        formData.startDate = formatDateTimeLocal(eventData.startDate)
+        formData.endDate = formatDateTimeLocal(eventData.endDate)
+        formData.ticketSalesStart = formatDateTimeLocal(eventData.ticketSalesStart)
+        formData.ticketSalesEnd = formatDateTimeLocal(eventData.ticketSalesEnd)
+        
     } catch (err) {
-        console.error('Failed to fetch event:', err)
-        errorMessage.value = 'Failed to load event'
+        errorMessage.value = err
+        displayError(err, 'Failed to load event data')
     } finally {
         loading.value = false
     }
+}
+
+// Handle file changes
+const handleCoverImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) coverImageFile.value = file
+}
+
+const handleAdditionalImagesChange = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length) additionalImagesFiles.value = files
 }
 
 // Update event
@@ -376,20 +483,44 @@ const updateEvent = async () => {
         const formDataToSend = new FormData()
         formDataToSend.append('Title', formData.title)
         formDataToSend.append('Description', formData.description)
+        formDataToSend.append('CategoryId', formData.categoryId)
         formDataToSend.append('Venue', formData.venue)
         formDataToSend.append('Location', formData.location)
         formDataToSend.append('TotalCapacity', formData.totalCapacity)
         formDataToSend.append('StartDate', new Date(formData.startDate).toISOString())
         formDataToSend.append('EndDate', new Date(formData.endDate).toISOString())
+        
+        if (formData.ticketSalesStart) {
+             formDataToSend.append('TicketSalesStart', new Date(formData.ticketSalesStart).toISOString())
+        }
+        if (formData.ticketSalesEnd) {
+             formDataToSend.append('TicketSalesEnd', new Date(formData.ticketSalesEnd).toISOString())
+        }
 
-        // Note: CategoryId is required but not editable in this simple version
-        formDataToSend.append('CategoryId', event.value.categoryId || '00000000-0000-0000-0000-000000000000')
+        // Media
+        if (coverImageFile.value) {
+            formDataToSend.append('CoverImage', coverImageFile.value)
+        }
+        
+        if (additionalImagesFiles.value.length > 0) {
+            additionalImagesFiles.value.forEach(file => {
+                formDataToSend.append('AdditionalImages', file)
+            })
+        }
 
         await eventService.updateEvent(eventId, formDataToSend)
-        await fetchEvent() // Refresh
+        
+        // Reload to show updates
+        const updatedEvent = await eventService.getEventById(eventId)
+        event.value = updatedEvent
+        // Reset file inputs
+        coverImageFile.value = null
+        additionalImagesFiles.value = []
+        
+        displayError('Event updated successfully!', 'Update Success', 'success')
     } catch (err) {
-        console.error('Failed to update event:', err)
-        errorMessage.value = 'Failed to update event'
+        errorMessage.value = err
+        displayError(err, 'Update Failed')
     } finally {
         saving.value = false
     }
@@ -402,6 +533,7 @@ const editTicket = (ticket) => {
     ticketForm.description = ticket.description
     ticketForm.basePrice = ticket.basePrice
     ticketForm.quantity = ticket.quantity
+    showAddTicketModal.value = true
 }
 
 const closeTicketModal = () => {
@@ -428,32 +560,43 @@ const saveTicket = async () => {
             await eventService.addTicketType(eventId, data)
         }
 
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
         closeTicketModal()
     } catch (err) {
-        console.error('Failed to save ticket:', err)
-        errorMessage.value = 'Failed to save ticket'
+        displayError(err, 'Failed to save ticket')
+        errorMessage.value = err
     }
 }
 
 const toggleTicketStatus = async (ticket) => {
     try {
         await eventService.setTicketTypeStatus(ticket.id, !ticket.isActive)
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
     } catch (err) {
-        console.error('Failed to toggle ticket status:', err)
+        displayError(err, 'Failed to update ticket status')
     }
 }
 
 const deleteTicket = async (ticketId) => {
-    if (!confirm('Are you sure you want to delete this ticket type?')) return
+    const confirmed = await askConfirmation({
+        title: 'Delete Ticket Type',
+        message: 'Are you sure you want to delete this ticket type? This action cannot be undone.',
+        type: 'danger',
+        confirmText: 'Delete'
+    })
+
+    if (!confirmed) return
 
     try {
         await eventService.removeTicketType(ticketId)
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
+        displayError('Ticket type deleted successfully', 'Deleted', 'success')
     } catch (err) {
-        console.error('Failed to delete ticket:', err)
-        errorMessage.value = 'Failed to delete ticket'
+        errorMessage.value = err
+        displayError(err, 'Failed to delete ticket')
     }
 }
 
@@ -474,6 +617,7 @@ const editPricingRule = (rule, ticket) => {
     ruleForm.lastNDaysBeforeEvent = rule.lastNDaysBeforeEvent || 0
     ruleForm.startDate = rule.startDate ? formatDateTimeLocal(rule.startDate) : ''
     ruleForm.endDate = rule.endDate ? formatDateTimeLocal(rule.endDate) : ''
+    showPricingRuleModal.value = true
 }
 
 const closePricingRuleModal = () => {
@@ -515,32 +659,43 @@ const savePricingRule = async () => {
             await eventService.addPricingRule(currentTicketForRule.value.id, data)
         }
 
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
         closePricingRuleModal()
     } catch (err) {
-        console.error('Failed to save pricing rule:', err)
-        errorMessage.value = 'Failed to save pricing rule'
+        displayError(err, 'Failed to save pricing rule')
+        errorMessage.value = err
     }
 }
 
 const toggleRuleStatus = async (rule) => {
     try {
         await eventService.setPricingRuleStatus(rule.id, !rule.isActive)
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
     } catch (err) {
-        console.error('Failed to toggle rule status:', err)
+        displayError(err, 'Failed to update rule status')
     }
 }
 
 const deletePricingRule = async (ruleId) => {
-    if (!confirm('Are you sure you want to delete this pricing rule?')) return
+    const confirmed = await askConfirmation({
+        title: 'Delete Pricing Rule',
+        message: 'Are you sure you want to delete this pricing rule?',
+        type: 'danger',
+        confirmText: 'Delete'
+    })
+
+    if (!confirmed) return
 
     try {
         await eventService.removePricingRule(ruleId)
-        await fetchEvent()
+        const updated = await eventService.getEventById(eventId)
+        event.value = updated
+        displayError('Pricing rule deleted successfully', 'Deleted', 'success')
     } catch (err) {
-        console.error('Failed to delete pricing rule:', err)
-        errorMessage.value = 'Failed to delete pricing rule'
+        errorMessage.value = err
+        displayError(err, 'Failed to delete pricing rule')
     }
 }
 
@@ -562,6 +717,6 @@ const formatDateTimeLocal = (dateString) => {
 }
 
 onMounted(() => {
-    fetchEvent()
+    loadData()
 })
 </script>

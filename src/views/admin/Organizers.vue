@@ -41,7 +41,7 @@
 
     <!-- Error State -->
     <div v-else-if="error" class="card p-4 border border-destructive bg-destructive/10">
-      <p class="text-destructive">{{ error }}</p>
+      <p class="text-destructive">{{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}</p>
     </div>
 
     <!-- Pending Organizers -->
@@ -324,6 +324,44 @@
       </div>
     </div>
 
+
+    <!-- Action Modal -->
+    <div v-if="showActionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div class="card bg-card w-full max-w-md p-6 space-y-4 shadow-2xl">
+        <h3 class="text-xl font-bold flex items-center gap-2">
+           <span v-if="actionType === 'approve'">✅ Approve Organizer</span>
+           <span v-else>🚫 Reject Organizer</span>
+        </h3>
+        
+        <p class="text-muted-foreground">
+           Are you sure you want to {{ actionType }} <span class="font-semibold text-foreground">{{ selectedOrg?.fullName }}</span>?
+        </p>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Admin Note (Optional)</label>
+            <textarea 
+                v-model="actionNote" 
+                class="input-field w-full min-h-[80px]" 
+                placeholder="Add a note for the organizer..."
+            ></textarea>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+             <button class="btn-outline flex-1 py-2" @click="closeActionModal">
+                Cancel
+            </button>
+            <button 
+                class="flex-1 py-2 rounded-lg text-white font-medium transition-opacity hover:opacity-90"
+                :class="actionType === 'approve' ? 'bg-green-600' : 'bg-red-600'"
+                @click="confirmAction"
+                :disabled="actionLoading"
+            >
+                {{ actionLoading ? 'Processing...' : (actionType === 'approve' ? 'Confirm Approval' : 'Confirm Rejection') }}
+            </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Image Modal -->
     <div v-if="showImageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" @click="closeImageModal">
       <div class="relative max-w-4xl max-h-[90vh]">
@@ -341,6 +379,29 @@
         <p class="text-white text-center mt-2">{{ selectedImageTitle }}</p>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal (for general confirmations) -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -348,6 +409,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '../../stores/admin'
 import { adminService } from '@/services/adminService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const adminStore = useAdminStore()
 
@@ -361,6 +429,12 @@ const showEventsModal = ref(false)
 const orgEvents = ref([])
 const eventsLoading = ref(false)
 const selectedOrg = ref(null)
+
+// Action Modal State (Approve/Reject)
+const showActionModal = ref(false)
+const actionType = ref('approve') // 'approve' or 'reject'
+const actionNote = ref('')
+const actionLoading = ref(false)
 
 // Image Modal State
 const showImageModal = ref(false)
@@ -432,30 +506,51 @@ const changePage = (page) => {
   currentPage.value = page
 }
 
-// Handle approve
-const handleApprove = async (id) => {
-  const confirmed = confirm('Are you sure you want to approve this organizer?')
-  if (confirmed) {
-    const result = await adminStore.approveOrganizer(id)
-    if (result.success) {
-      alert('Organizer approved successfully!')
-    } else {
-      alert(`Failed to approve: ${result.message}`)
-    }
-  }
+// --- Action Handling ---
+
+const handleApprove = (id) => {
+    selectedOrg.value = pendingOrganizers.value.find(o => o.id === id)
+    actionType.value = 'approve'
+    actionNote.value = ''
+    showActionModal.value = true
 }
 
-// Handle reject
-const handleReject = async (id) => {
-  const confirmed = confirm('Are you sure you want to reject this organizer? This action cannot be undone.')
-  if (confirmed) {
-    const result = await adminStore.rejectOrganizer(id)
-    if (result.success) {
-      alert('Organizer rejected successfully!')
-    } else {
-      alert(`Failed to reject: ${result.message}`)
+const handleReject = (id) => {
+    selectedOrg.value = pendingOrganizers.value.find(o => o.id === id)
+    actionType.value = 'reject'
+    actionNote.value = ''
+    showActionModal.value = true
+}
+
+const closeActionModal = () => {
+    showActionModal.value = false
+    selectedOrg.value = null
+    actionNote.value = ''
+}
+
+const confirmAction = async () => {
+    if (!selectedOrg.value) return
+
+    actionLoading.value = true
+    try {
+        let result
+        if (actionType.value === 'approve') {
+            result = await adminStore.approveOrganizer(selectedOrg.value.id, actionNote.value)
+        } else {
+            result = await adminStore.rejectOrganizer(selectedOrg.value.id, actionNote.value)
+        }
+
+        if (result.success) {
+            displayError(`Organizer ${actionType.value === 'approve' ? 'approved' : 'rejected'} successfully!`, 'Success', 'success')
+            closeActionModal()
+        } else {
+            displayError(result.message || `Failed to ${actionType.value} organizer`)
+        }
+    } catch (err) {
+        displayError(err, 'An unexpected error occurred.')
+    } finally {
+        actionLoading.value = false
     }
-  }
 }
 
 // Open Events Modal
@@ -469,7 +564,7 @@ const openEventsModal = async (org) => {
     const events = await adminService.getOrganizerEvents(org.id)
     orgEvents.value = events || []
   } catch (err) {
-    alert('Failed to load organizer events')
+    displayError(err, 'Failed to load organizer events', 'error')
   } finally {
     eventsLoading.value = false
   }

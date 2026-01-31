@@ -185,13 +185,43 @@
             </div>
         </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+        :show="showError"
+        :title="errorTitle"
+        :type="errorType"
+        :message="errorMessage"
+        :detail="errorDetail"
+        :status-code="errorStatusCode"
+        @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+        :show="showConfirm"
+        :title="confirmTitle"
+        :message="confirmMessage"
+        :type="confirmType"
+        :confirm-text="confirmButtonText"
+        :loading="confirmLoading"
+        @confirm="onConfirm"
+        @cancel="onCancel"
+    />
 </template>
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted, nextTick } from 'vue'
 import { gatePersonService } from '@/services/gatePersonService'
 import StatCard from '@/components/StatCard.vue'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
 import { Html5Qrcode } from 'html5-qrcode'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const dashboardInfo = ref(null)
 const recentScans = ref([])
@@ -230,7 +260,7 @@ const loadDashboardInfo = async () => {
         const data = await gatePersonService.getDashboardInfo()
         dashboardInfo.value = data
     } catch (error) {
-        console.error('Failed to load dashboard info:', error)
+        displayError(error, 'Failed to load dashboard info')
     }
 }
 
@@ -240,7 +270,7 @@ const loadRecentScans = async () => {
         const data = await gatePersonService.getRecentScans()
         recentScans.value = data || []
     } catch (error) {
-        console.error('Failed to load recent scans:', error)
+        displayError(error, 'Failed to load recent scans')
         recentScans.value = []
     } finally {
         loadingScans.value = false
@@ -275,9 +305,8 @@ const startCamera = async () => {
             }
         )
     } catch (error) {
-        console.error('Failed to start camera:', error)
         cameraActive.value = false
-        alert('Failed to access camera. Please ensure camera permissions are granted.')
+        displayError('Failed to access camera. Please ensure camera permissions are granted.', 'Camera Error')
     }
 }
 
@@ -305,6 +334,12 @@ const handleScan = async () => {
         })
 
         scanResult.value = result
+        
+        if (result.isValid) {
+            displayError(result.message || 'Ticket scan successful!', 'Success', 'success')
+        } else {
+            displayError(result.message || 'Ticket is invalid.', 'Invalid Ticket', 'error')
+        }
 
         // Refresh recent scans after successful scan
         await loadRecentScans()
@@ -321,6 +356,7 @@ const handleScan = async () => {
             isValid: false,
             message: error.response?.data?.message || 'Scan failed. Please try again.'
         }
+        displayError(error, 'Scan Failed')
     } finally {
         scanning.value = false
     }

@@ -17,12 +17,7 @@
 
     <!-- Error State -->
     <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-      {{ error }}
-    </div>
-
-    <!-- Success Message -->
-    <div v-if="successMessage" class="card bg-primary/10 border-primary/20 text-primary p-4">
-      {{ successMessage }}
+      {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
     </div>
 
     <!-- Profile Content -->
@@ -102,18 +97,32 @@
         </button>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { attendeeProfileService } from '@/services/attendeeProfileService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
 
 const loading = ref(false)
 const saving = ref(false)
 const uploadingImage = ref(false)
 const error = ref(null)
-const successMessage = ref(null)
 const profile = ref(null)
 const fileInput = ref(null)
 
@@ -135,8 +144,8 @@ const fetchProfile = async () => {
     formData.fullName = data.fullName || ''
     formData.phoneNumber = data.phoneNumber || ''
   } catch (err) {
-    console.error('Failed to fetch profile:', err)
-    error.value = 'Failed to load profile. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to load profile')
   } finally {
     loading.value = false
   }
@@ -146,7 +155,6 @@ const fetchProfile = async () => {
 const saveProfile = async () => {
   saving.value = true
   error.value = null
-  successMessage.value = null
 
   try {
     await attendeeProfileService.updateProfile({
@@ -154,16 +162,11 @@ const saveProfile = async () => {
       PhoneNumber: formData.phoneNumber
     })
 
-    successMessage.value = 'Profile updated successfully!'
+    displayError('Profile updated successfully!', 'Success', 'success')
     await fetchProfile() // Refresh profile
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = null
-    }, 3000)
   } catch (err) {
-    console.error('Failed to update profile:', err)
-    error.value = 'Failed to update profile. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to update profile')
   } finally {
     saving.value = false
   }
@@ -192,15 +195,10 @@ const handleImageUpload = async (event) => {
   try {
     const response = await attendeeProfileService.updateProfileImage(file)
     profile.value.profileImageUrl = response.profileImageUrl
-    successMessage.value = 'Profile picture updated successfully!'
-
-    // Clear success message after 3 seconds
-    setTimeout(() => {
-      successMessage.value = null
-    }, 3000)
+    displayError('Profile picture updated successfully!', 'Success', 'success')
   } catch (err) {
-    console.error('Failed to upload image:', err)
-    error.value = 'Failed to upload image. Please try again.'
+    error.value = err
+    displayError(err, 'Failed to upload image')
   } finally {
     uploadingImage.value = false
     // Reset file input

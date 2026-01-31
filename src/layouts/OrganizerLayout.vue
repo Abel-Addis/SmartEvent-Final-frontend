@@ -7,7 +7,7 @@
       !mobileMenuOpen && '-translate-x-full lg:translate-x-0'
     ]">
       <div class="h-16 px-5 border-b border-sidebar-border flex items-center justify-between">
-        <router-link to="/" class="flex items-center gap-3">
+        <router-link to="/organizer" class="flex items-center gap-3">
           <div
             class="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
             C
@@ -28,6 +28,7 @@
         <nav-item to="/organizer/gate-persons" icon="🚪" label="Gate Persons" />
         <nav-item to="/organizer/credits" icon="💎" label="Credits" />
         <nav-item to="/organizer/boosts" icon="🚀" label="Boosts" />
+        <nav-item to="/organizer/settings" icon="⚙️" label="Settings" />
       </nav>
 
       <div class="p-4 border-t border-sidebar-border">

@@ -209,7 +209,7 @@
             </div>
             
             <p v-if="verificationError" class="text-destructive text-center text-sm">
-                {{ verificationError }}
+                {{ typeof verificationError === 'string' ? verificationError : (verificationError.response?.data?.error || verificationError.message || 'Verification failed') }}
             </p>
         </div>
       </div>
@@ -251,6 +251,29 @@
         </div>
       </div>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessage"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -258,6 +281,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { attendeeService } from '../../services/attendeeService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { showError, errorTitle, errorMessage, errorDetail, errorStatusCode, errorType, displayError, closeError } = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const route = useRoute()
 const eventId = route.params.id
@@ -285,7 +315,7 @@ const loadEventDetails = async () => {
         quantity: 0
     }))
   } catch (err) {
-    alert("Failed to load event details")
+    displayError(err, "Failed to load event details")
   }
 }
 
@@ -385,8 +415,7 @@ const initiateBooking = async () => {
     currentStep.value = 3
     
   } catch (err) {
-    console.error("Booking init failed:", err)
-    alert("Failed to initiate booking: " + (err.message || 'Unknown error'))
+    displayError(err, "Booking initiation failed")
   } finally {
     processing.value = false
   }
@@ -405,12 +434,15 @@ const verifyPaymentStatus = async () => {
         // Check for verified true (handle case sensitivity just in case)
         if (response && (response.verified === true || response.Verified === true)) {
             paymentSuccess.value = true
+            displayError('Payment verified successfully!', 'Success', 'success')
         } else {
-            verificationError.value = "Payment not verified yet. Please complete payment and try again."
+            const msg = "Payment not verified yet. Please complete payment and try again."
+            verificationError.value = msg
+            displayError(msg, "Verification Pending", "warning")
         }
     } catch (err) {
-        console.error(err)
-        verificationError.value = "Verification request failed."
+        verificationError.value = err
+        displayError(err, "Verification Failed")
     } finally {
         verifying.value = false
     }

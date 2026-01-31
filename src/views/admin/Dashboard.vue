@@ -123,7 +123,7 @@
     </div>
 
     <!-- System Overview -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="space-y-6">
       <!-- Recent Events -->
       <div class="card space-y-4">
         <div class="flex items-center justify-between">
@@ -168,38 +168,7 @@
         </div>
       </div>
 
-      <!-- User Activity -->
-      <div class="card space-y-4">
-        <div class="flex items-center justify-between">
-          <h3 class="text-h3 font-bold">
-            User Activity (Last 7 Days)
-          </h3>
-          <span class="px-3 py-1 rounded-full bg-accent/10 text-xs font-semibold text-accent-foreground border border-accent/30">Live</span>
-        </div>
-        <div class="space-y-4">
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium">New Users</span>
-            <span class="text-primary font-bold">+{{ Math.floor(totalUsersCount * 0.027) }}</span>
-          </div>
-          <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div class="bg-gradient-to-r from-primary to-accent h-2 rounded-full" style="width: 78%" />
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium">Active Events</span>
-            <span class="text-accent font-bold">+{{ Math.floor(totalEventsCount * 0.125) }}</span>
-          </div>
-          <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div class="bg-accent h-2 rounded-full" style="width: 65%" />
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-medium">Transactions</span>
-            <span class="text-foreground font-bold">+{{ Math.floor(totalEventsCount * 0.714) }}</span>
-          </div>
-          <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
-            <div class="bg-gradient-to-r from-foreground/80 to-foreground/60 h-2 rounded-full" style="width: 92%" />
-          </div>
-        </div>
-      </div>
+
     </div>
 
     <!-- Quick Actions -->
@@ -264,6 +233,29 @@
         </p>
       </router-link>
     </div>
+
+    <!-- Error Notification -->
+    <ErrorNotification
+      :show="showError"
+      :title="errorTitle"
+      :type="errorType"
+      :message="errorMessageNotify"
+      :detail="errorDetail"
+      :status-code="errorStatusCode"
+      @close="closeError"
+    />
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -271,6 +263,22 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAdminStore } from '../../stores/admin'
 import StatCard from '@/components/StatCard.vue'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { 
+  showError, 
+  errorTitle, 
+  errorMessage: errorMessageNotify, 
+  errorDetail, 
+  errorStatusCode, 
+  errorType,
+  displayError, 
+  closeError 
+} = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const adminStore = useAdminStore()
 
@@ -295,26 +303,34 @@ onMounted(async () => {
 
 // Handle approve
 const handleApprove = async (id) => {
-  const confirmed = confirm('Are you sure you want to approve this organizer?')
+  const confirmed = await askConfirmation({
+    title: 'Approve Organizer',
+    message: 'Are you sure you want to approve this organizer? They will be able to publish events immediately.',
+    confirmText: 'Approve',
+    type: 'info'
+  })
+  
   if (confirmed) {
     const result = await adminStore.approveOrganizer(id)
-    if (result.success) {
-      alert('Organizer approved successfully!')
-    } else {
-      alert(`Failed to approve: ${result.message}`)
+    if (!result.success) {
+      displayError(result.message || 'Failed to approve organizer')
     }
   }
 }
 
 // Handle reject
 const handleReject = async (id) => {
-  const confirmed = confirm('Are you sure you want to reject this organizer?')
+  const confirmed = await askConfirmation({
+    title: 'Reject Organizer',
+    message: 'Are you sure you want to reject this organizer? They will not be able to access organizer features.',
+    confirmText: 'Reject',
+    type: 'danger'
+  })
+  
   if (confirmed) {
     const result = await adminStore.rejectOrganizer(id)
-    if (result.success) {
-      alert('Organizer rejected successfully!')
-    } else {
-      alert(`Failed to reject: ${result.message}`)
+    if (!result.success) {
+      displayError(result.message || 'Failed to reject organizer')
     }
   }
 }

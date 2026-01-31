@@ -7,7 +7,7 @@
 
         <!-- Error State -->
         <div v-if="error" class="card bg-destructive/10 border-destructive/20 text-destructive p-4">
-            {{ error }}
+            {{ typeof error === 'string' ? error : (error.response?.data?.error || error.message || 'An error occurred') }}
         </div>
 
         <!-- Event Details -->
@@ -66,8 +66,19 @@
             <!-- Overview Tab -->
             <div v-if="activeTab === 'overview'" class="space-y-6">
                 <!-- Event Image -->
-                <div v-if="event.media?.coverImageUrl" class="card p-0 overflow-hidden">
-                    <img :src="event.media.coverImageUrl" :alt="event.title" class="w-full h-96 object-cover">
+                <!-- Event Image -->
+                <div v-if="event.media?.coverImage" class="card p-0 overflow-hidden">
+                    <img :src="event.media.coverImage" :alt="event.title" class="w-full h-64 md:h-80 object-cover">
+                </div>
+                
+                <!-- Gallery -->
+                <div v-if="event.media?.additionalImages?.length" class="card">
+                    <h3 class="text-h3 font-bold mb-4">Event Gallery</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div v-for="(img, index) in event.media.additionalImages" :key="index" class="aspect-square rounded-lg overflow-hidden border border-border">
+                            <img :src="img" class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
+                        </div>
+                    </div>
                 </div>
     
                 <!-- Event Information -->
@@ -240,7 +251,7 @@
                                 {{ notifSuccess }}
                             </p>
                             <p v-if="notifError" class="text-destructive text-center text-sm">
-                                {{ notifError }}
+                                {{ typeof notifError === 'string' ? notifError : (notifError.response?.data?.error || notifError.message || 'Failed to send notification') }}
                             </p>
                         </div>
                     </div>
@@ -451,6 +462,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- Error Notification -->
+        <ErrorNotification
+          :show="showErrorNotification"
+          :title="errorTitle"
+          :type="errorType"
+          :message="errorMessageNotify"
+          :detail="errorDetail"
+          :status-code="errorStatusCode"
+          @close="closeError"
+        />
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal
+          :show="showConfirm"
+          :title="confirmTitle"
+          :message="confirmMessage"
+          :type="confirmType"
+          :confirm-text="confirmButtonText"
+          :loading="confirmLoading"
+          @confirm="onConfirm"
+          @cancel="onCancel"
+        />
     </div>
 </template>
 
@@ -461,6 +495,22 @@ import { eventService } from '@/services/eventService'
 import { feedbackService } from '@/services/feedbackService'
 import { notificationService } from '@/services/notificationService'
 import { ticketScanService } from '@/services/ticketScanService'
+import ErrorNotification from '@/components/ErrorNotification.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useErrorNotification } from '@/composables/useErrorNotification'
+import { useConfirmation } from '@/composables/useConfirmation'
+
+const { 
+  showError: showErrorNotification, 
+  errorTitle, 
+  errorMessage: errorMessageNotify, 
+  errorDetail, 
+  errorStatusCode, 
+  errorType,
+  displayError, 
+  closeError 
+} = useErrorNotification()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const route = useRoute()
 const router = useRouter()
@@ -501,8 +551,8 @@ const fetchEventDetails = async () => {
         const response = await eventService.getEventById(eventId)
         event.value = response
     } catch (err) {
-        console.error('Failed to fetch event:', err)
-        error.value = 'Failed to load event details. Please try again.'
+        error.value = err
+        displayError(err, 'Failed to load event details')
     } finally {
         loading.value = false
     }
@@ -518,7 +568,7 @@ const fetchFeedbackData = async () => {
         feedbacks.value = list || []
         feedbackSummary.value = summary
     } catch (err) {
-        console.error("Failed to load feedback", err)
+        displayError(err, "Failed to load feedback")
     } finally {
         loadingFeedback.value = false
     }
@@ -543,7 +593,7 @@ const fetchScanData = async () => {
         scanSummary.value = summary
         scanLogs.value = logs?.items || logs || [] // Handle potential different pagination structure
     } catch (err) {
-        console.error("Failed to load scan data", err)
+        displayError(err, "Failed to load scan data")
     } finally {
         loadingScans.value = false
     }
@@ -566,8 +616,8 @@ const sendNotification = async () => {
         notifSuccess.value = 'Notification sent successfully! 🚀'
         notifForm.value = { title: '', message: '' }
     } catch (err) {
-        console.error("Failed to send notification", err)
-        notifError.value = 'Failed to send notification. Please try again.'
+        notifError.value = err
+        displayError(err, "Failed to send notification")
     } finally {
         sendingNotif.value = false
     }
@@ -608,8 +658,8 @@ const confirmPublish = async () => {
         await fetchEventDetails()
         closePublishModal()
     } catch (err) {
-        console.error('Failed to publish event:', err)
-        error.value = 'Failed to publish event. Please try again.'
+        error.value = err
+        displayError(err, 'Failed to publish event')
     } finally {
         publishing.value = false
     }

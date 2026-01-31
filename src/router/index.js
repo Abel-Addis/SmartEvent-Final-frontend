@@ -67,6 +67,11 @@ const routes = [
         component: () => import("../views/attendee/Tickets.vue"),
       },
       {
+        path: "feedback",
+        name: "Feedback",
+        component: () => import("../views/attendee/feedback/FeedbackIndex.vue"),
+      },
+      {
         path: "notifications",
         name: "Notifications",
         component: () => import("../views/attendee/Notifications.vue"),
@@ -107,6 +112,11 @@ const routes = [
         path: "events",
         name: "ManageEvents",
         component: () => import("../views/organizer/ManageEvents.vue"),
+      },
+      {
+        path: "event-analytics/:id",
+        name: "EventAnalytics",
+        component: () => import("../views/organizer/EventAnalytics.vue"),
       },
       {
         path: "analytics",
