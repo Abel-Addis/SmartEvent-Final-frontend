@@ -221,7 +221,9 @@ const handlePurchase = async () => {
       
       // Step 4: Redirect to Chapa checkout URL
       if (paymentResponse.checkoutUrl) {
-        window.location.href = paymentResponse.checkoutUrl
+        // window.location.href = paymentResponse.checkoutUrl
+        window.open(paymentResponse.checkoutUrl, '_blank')
+        displayError('Payment page opened in a new tab. Please complete payment there.', 'Payment Initiated', 'success')
       } else {
         displayError('Payment initialization failed: No checkout URL received', 'Payment Error')
         sessionStorage.removeItem('creditPaymentReference')

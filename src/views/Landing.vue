@@ -1,34 +1,59 @@
 <template>
-  <div class="min-h-screen bg-[#02040a] text-white selection:bg-indigo-500/30 overflow-x-hidden font-sans">
+  <div class="min-h-screen bg-slate-50 dark:bg-[#02040a] text-slate-900 dark:text-white selection:bg-indigo-500/30 overflow-x-hidden font-sans transition-colors duration-300">
     
     <!-- Ambient Background Effects -->
-    <div class="fixed inset-0 z-0 pointer-events-none">
-      <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px]" />
-      <div class="absolute bottom-[-10%] right-[20%] w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[120px]" />
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <!-- Light Mode Blobs -->
+      <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] dark:hidden" />
+      <div class="absolute bottom-[-10%] right-[20%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] dark:hidden" />
+      
+      <!-- Dark Mode Blobs -->
+      <div class="absolute top-[-10%] left-[20%] w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] hidden dark:block" />
+      <div class="absolute bottom-[-10%] right-[20%] w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[120px] hidden dark:block" />
     </div>
 
     <!-- Floating Navigation -->
     <nav class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl">
-      <div class="mx-auto rounded-full border border-white/5 bg-white/[0.03] backdrop-blur-xl shadow-2xl px-6 py-3 flex items-center justify-between">
+      <div class="mx-auto rounded-full border border-slate-200 dark:border-white/5 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl shadow-lg dark:shadow-2xl px-6 py-3 flex items-center justify-between transition-all">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-indigo-500/20">
+          <div class="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500 flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-indigo-500/20">
             C
           </div>
-          <span class="font-semibold tracking-tight text-white/90">Convene</span>
+          <span class="font-semibold tracking-tight text-slate-800 dark:text-white/90">Convene</span>
         </div>
 
         <!-- Desktop Links -->
-        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
-          <a href="#features" class="hover:text-white transition-colors">Features</a>
-          <a href="#categories" class="hover:text-white transition-colors">Categories</a>
-          <a href="#about" class="hover:text-white transition-colors">About</a>
+        <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600 dark:text-slate-400">
+          <a href="#features" class="hover:text-indigo-600 dark:hover:text-white transition-colors">Features</a>
+          <a href="#categories" class="hover:text-indigo-600 dark:hover:text-white transition-colors">Categories</a>
+          <a href="#about" class="hover:text-indigo-600 dark:hover:text-white transition-colors">About</a>
         </div>
 
         <div class="flex items-center gap-4">
-          <router-link to="/login" class="text-sm font-medium text-slate-400 hover:text-white transition-colors hidden sm:block">
+          <!-- Theme Toggle -->
+          <button @click="toggleTheme" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" aria-label="Toggle Theme">
+             <!-- Sun Icon (Light Mode) -->
+            <svg v-if="!isDark" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon Icon (Dark Mode) -->
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+
+          <router-link to="/login" class="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-colors hidden sm:block">
             Log in
           </router-link>
-          <router-link to="/signup" class="group relative px-5 py-2 rounded-full bg-white text-black text-sm font-semibold hover:bg-slate-200 transition-all flex items-center gap-2">
+          <router-link to="/signup" class="group relative px-5 py-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-slate-800 dark:hover:bg-slate-200 transition-all flex items-center gap-2 shadow-lg dark:shadow-none">
             Get Started
             <span class="group-hover:translate-x-0.5 transition-transform">→</span>
           </router-link>
@@ -42,17 +67,17 @@
         <!-- Spotlight Gradient -->
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-indigo-500/10 via-blue-500/10 to-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
         
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-indigo-300 mb-8 backdrop-blur-sm animate-fade-in-up">
-          <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-100 dark:border-white/10 bg-indigo-50/50 dark:bg-white/5 text-xs font-medium text-indigo-600 dark:text-indigo-300 mb-8 backdrop-blur-sm animate-fade-in-up">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
           The future of event management
         </div>
 
-        <h1 class="text-5xl sm:text-7xl font-bold tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white to-white/50 animate-fade-in-up delay-100">
+        <h1 class="text-5xl sm:text-7xl font-bold tracking-tight mb-8 text-slate-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-b dark:from-white dark:to-white/50 animate-fade-in-up delay-100">
           Discover Events <br />
-          <span class="text-white">That Move You.</span>
+          <span class="text-indigo-600 dark:text-white">That Move You.</span>
         </h1>
 
-        <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed animate-fade-in-up delay-200">
+        <p class="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-12 leading-relaxed animate-fade-in-up delay-200">
           The premium platform for discovering, creating, and experiencing unforgettable events. Seamlessly orchestrated, beautifully designed.
         </p>
 
@@ -60,7 +85,7 @@
           <router-link to="/signup?role=attendee" class="min-w-[160px] px-8 py-3.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition-all shadow-lg shadow-indigo-600/20">
             Discover Events
           </router-link>
-          <router-link to="/signup?role=organizer" class="min-w-[160px] px-8 py-3.5 rounded-full border border-white/10 hover:bg-white/5 text-white font-medium transition-all backdrop-blur-sm">
+          <router-link to="/signup?role=organizer" class="min-w-[160px] px-8 py-3.5 rounded-full border border-slate-200 dark:border-white/10 bg-white/50 dark:bg-transparent hover:bg-slate-100 dark:hover:bg-white/5 text-slate-700 dark:text-white font-medium transition-all backdrop-blur-sm">
             Create Event
           </router-link>
         </div>
@@ -68,65 +93,65 @@
     </section>
 
     <!-- Bento Grid Features -->
-    <section id="features" class="relative z-10 py-32 border-t border-white/5">
+    <section id="features" class="relative z-10 py-32 border-t border-slate-200 dark:border-white/5 bg-white/50 dark:bg-transparent">
       <div class="max-w-7xl mx-auto px-6">
         <div class="text-center mb-20">
-          <h2 class="text-3xl font-bold mb-4">Why Convene?</h2>
-          <p class="text-slate-400 max-w-xl mx-auto">Precision tools for organizers, curated experiences for attendees.</p>
+          <h2 class="text-3xl font-bold mb-4 text-slate-900 dark:text-white">Why Convene?</h2>
+          <p class="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">Precision tools for organizers, curated experiences for attendees.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Card 1 -->
-          <div class="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all overflow-hidden">
+          <div class="group relative p-8 rounded-3xl border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:shadow-xl hover:translate-y-[-2px] hover:border-indigo-200 dark:hover:bg-white/[0.04] transition-all overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div class="relative z-10">
-              <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
                 ⚡
               </div>
-              <h3 class="text-xl font-semibold mb-3">Instant Discovery</h3>
-              <p class="text-slate-400 text-sm leading-relaxed">
+              <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Instant Discovery</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
                 Browse thousands of events across music, sports, and tech with AI-powered recommendations tailored to your taste.
               </p>
             </div>
           </div>
 
           <!-- Card 2 -->
-          <div class="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all overflow-hidden md:col-span-2">
+          <div class="group relative p-8 rounded-3xl border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:shadow-xl hover:translate-y-[-2px] hover:border-blue-200 dark:hover:bg-white/[0.04] transition-all overflow-hidden md:col-span-2">
             <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div class="relative z-10 h-full flex flex-col justify-center items-start">
-               <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+               <div class="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
                 🎯
               </div>
-              <h3 class="text-xl font-semibold mb-3">World-Class Management Tools</h3>
-              <p class="text-slate-400 text-sm leading-relaxed max-w-lg">
+              <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">World-Class Management Tools</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed max-w-lg">
                 For organizers who demand perfection. Real-time analytics, dynamic pricing rules, and seamless attendee management—all in a unified dashboard.
               </p>
             </div>
           </div>
 
           <!-- Card 3 -->
-          <div class="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all overflow-hidden md:col-span-2">
+          <div class="group relative p-8 rounded-3xl border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:shadow-xl hover:translate-y-[-2px] hover:border-purple-200 dark:hover:bg-white/[0.04] transition-all overflow-hidden md:col-span-2">
              <div class="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div class="relative z-10 h-full flex flex-col justify-center items-start">
-               <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+               <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
                  🔒
               </div>
-              <h3 class="text-xl font-semibold mb-3">Secure & Flexible Payments</h3>
-               <p class="text-slate-400 text-sm leading-relaxed max-w-lg">
+              <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Secure & Flexible Payments</h3>
+               <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed max-w-lg">
                 Local and international payment support including Telebirr and CBE. Automated receipts and instant payouts.
               </p>
             </div>
           </div>
 
           <!-- Card 4 -->
-          <div class="group relative p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all overflow-hidden">
+          <div class="group relative p-8 rounded-3xl border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:shadow-xl hover:translate-y-[-2px] hover:border-pink-200 dark:hover:bg-white/[0.04] transition-all overflow-hidden">
              <div class="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div class="relative z-10">
-               <div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
+               <div class="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-white/5 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-500">
                📱
               </div>
-              <h3 class="text-xl font-semibold mb-3">Mobile First</h3>
-              <p class="text-slate-400 text-sm leading-relaxed">
+              <h3 class="text-xl font-semibold mb-3 text-slate-900 dark:text-white">Mobile First</h3>
+              <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
                 A native-app feel on the web. Experience fluid animations and intuitive gestures anywhere.
               </p>
             </div>
@@ -140,17 +165,17 @@
       <div class="max-w-7xl mx-auto px-6">
         <div class="flex items-end justify-between mb-12">
           <div>
-            <h2 class="text-3xl font-bold mb-2">Curated Categories</h2>
-            <p class="text-slate-400">Explore events that define culture.</p>
+            <h2 class="text-3xl font-bold mb-2 text-slate-900 dark:text-white">Curated Categories</h2>
+            <p class="text-slate-600 dark:text-slate-400">Explore events that define culture.</p>
           </div>
-          <router-link to="/signup" class="text-indigo-400 text-sm hover:text-indigo-300 transition-colors hidden sm:block">View all categories →</router-link>
+          <router-link to="/signup" class="text-indigo-600 dark:text-indigo-400 text-sm hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors hidden sm:block">View all categories →</router-link>
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div v-for="cat in categories" :key="cat.name" 
-               class="group p-6 rounded-2xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/10 transition-all cursor-pointer text-center">
+               class="group p-6 rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02] hover:shadow-lg hover:border-indigo-200 dark:hover:bg-white/[0.05] dark:hover:border-white/10 transition-all cursor-pointer text-center">
             <div class="text-3xl mb-4 grayscale group-hover:grayscale-0 transition-all duration-300 transform group-hover:scale-110">{{ cat.emoji }}</div>
-            <h4 class="font-medium text-slate-300 group-hover:text-white transition-colors">{{ cat.name }}</h4>
+            <h4 class="font-medium text-slate-600 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-white transition-colors">{{ cat.name }}</h4>
           </div>
         </div>
       </div>
@@ -160,20 +185,20 @@
     <section class="relative py-32 px-6">
       <div class="max-w-4xl mx-auto relative group">
         <!-- Glow behind CTA -->
-        <div class="absolute inset-0 bg-indigo-600/20 blur-[100px] opacity-50 group-hover:opacity-75 transition-opacity" />
+        <div class="absolute inset-0 bg-indigo-600/20 blur-[100px] opacity-30 dark:opacity-50 group-hover:opacity-50 dark:group-hover:opacity-75 transition-opacity" />
         
-        <div class="relative rounded-3xl border border-white/10 bg-black/40 backdrop-blur-xl p-12 md:p-20 text-center overflow-hidden">
+        <div class="relative rounded-3xl border border-white/20 dark:border-white/10 bg-slate-900/95 dark:bg-black/40 backdrop-blur-xl p-12 md:p-20 text-center overflow-hidden shadow-2xl">
            <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
            <div class="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-          <h2 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight">Ready to start?</h2>
-          <p class="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join the ecosystem where events become experiences. Sign up today and get started in seconds.</p>
+          <h2 class="text-4xl md:text-5xl font-bold mb-6 tracking-tight text-white">Ready to start?</h2>
+          <p class="text-slate-300 dark:text-slate-400 text-lg mb-10 max-w-xl mx-auto">Join the ecosystem where events become experiences. Sign up today and get started in seconds.</p>
           
           <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
             <router-link to="/signup" class="min-w-[180px] px-8 py-4 rounded-full bg-white text-black font-semibold hover:bg-slate-200 transition-colors">
               Get Started Now
             </router-link>
-            <router-link to="/login" class="min-w-[180px] px-8 py-4 rounded-full border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white font-medium transition-colors">
+            <router-link to="/login" class="min-w-[180px] px-8 py-4 rounded-full border border-white/20 hover:bg-white/10 text-slate-300 hover:text-white font-medium transition-colors">
               Log in
             </router-link>
           </div>
@@ -182,25 +207,25 @@
     </section>
 
     <!-- Footer -->
-    <footer class="border-t border-white/5 py-12 relative z-10 bg-[#02040a]">
+    <footer class="border-t border-slate-200 dark:border-white/5 py-12 relative z-10 bg-slate-50 dark:bg-[#02040a]">
       <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
         <div class="flex items-center gap-2">
-           <div class="w-6 h-6 rounded bg-white/10 flex items-center justify-center font-bold text-xs text-white">
+           <div class="w-6 h-6 rounded bg-slate-200 dark:bg-white/10 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-white">
             C
           </div>
-          <span class="text-sm font-medium text-slate-400">© 2025 Convene</span>
+          <span class="text-sm font-medium text-slate-500 dark:text-slate-400">© 2025 Convene</span>
         </div>
 
         <div class="flex gap-8 text-sm text-slate-500">
-          <a href="#" class="hover:text-slate-300 transition-colors">Privacy</a>
-          <a href="#" class="hover:text-slate-300 transition-colors">Terms</a>
-          <a href="#" class="hover:text-slate-300 transition-colors">Contact</a>
+          <a href="#" class="hover:text-slate-900 dark:hover:text-slate-300 transition-colors">Privacy</a>
+          <a href="#" class="hover:text-slate-900 dark:hover:text-slate-300 transition-colors">Terms</a>
+          <a href="#" class="hover:text-slate-900 dark:hover:text-slate-300 transition-colors">Contact</a>
         </div>
         
          <div class="flex gap-4">
              <!-- Social Icons Placeholder - utilizing text for simplicity/performance in this view -->
-             <a href="#" class="text-slate-500 hover:text-white transition-colors">Twitter</a>
-             <a href="#" class="text-slate-500 hover:text-white transition-colors">LinkedIn</a>
+             <a href="#" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">Twitter</a>
+             <a href="#" class="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">LinkedIn</a>
          </div>
       </div>
     </footer>
@@ -209,6 +234,36 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+const isDark = ref(true)
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value
+  updateTheme()
+}
+
+const updateTheme = () => {
+  if (isDark.value) {
+    document.documentElement.classList.add('dark')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }
+}
+
+onMounted(() => {
+  // Check local storage or system preference
+  const savedTheme = localStorage.getItem('theme')
+  if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    isDark.value = true
+  } else {
+    isDark.value = false
+  }
+  updateTheme()
+})
+
 const categories = [
   { name: 'Music', emoji: '🎵' },
   { name: 'Conference', emoji: '🎙️' },
