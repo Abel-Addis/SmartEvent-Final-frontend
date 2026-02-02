@@ -727,7 +727,8 @@ const createDraftEvent = handleSubmit(async (values) => {
     const result = await eventStore.createEvent(formData)
 
     if (result.success) {
-      createdEventId.value = result.event.eventId
+      // Robustly get the ID (backend entity uses 'id', DTO might use 'eventId')
+      createdEventId.value = result.event.id || result.event.eventId || result.event.Id
       currentStep.value = 2
     } else {
       errorMessage.value = result.message || 'Failed to create event'
@@ -887,13 +888,18 @@ const publishNow = async () => {
       // If user wants to post to Telegram, do it after successful publish
       if (postToTelegram.value) {
         try {
-          await eventStore.postEventToTelegram(createdEventId.value)
-          // Success - event published and posted to Telegram
+          const telResult = await eventStore.postEventToTelegram(createdEventId.value)
+          if (telResult.success) {
+            displayError('Event published and shared on Telegram!', 'Success', 'success')
+          } else {
+            displayError(`Event published, but Telegram sharing failed: ${telResult.message}`, 'Telegram Warning', 'warning')
+          }
         } catch (telegramError) {
           console.error('Failed to post to Telegram:', telegramError)
-          // Don't block the flow - event is already published
-          // Just log the error, user can manually post later if needed
+          displayError('Event published, but failed to connect to Telegram service.', 'Telegram Error', 'warning')
         }
+      } else {
+        displayError('Event published successfully!', 'Success', 'success')
       }
       // Clear the saved form state after successful publish
       clearFormState()

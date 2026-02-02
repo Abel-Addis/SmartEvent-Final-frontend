@@ -287,7 +287,12 @@ const confirmPublish = async () => {
     // If Telegram checkbox is checked, post to Telegram
     if (postToTelegram.value) {
       try {
-        await eventService.postEventToTelegram(selectedEvent.value.eventId)
+        const id = selectedEvent.value.eventId || selectedEvent.value.EventId || selectedEvent.value.id;
+        if (id) {
+            await eventService.postEventToTelegram(id)
+        } else {
+            console.error("Could not find event ID for Telegram publishing");
+        }
       } catch (telegramErr) {
         console.error('Failed to post to Telegram:', telegramErr)
         // Don't block the flow - event is already published
@@ -318,7 +323,10 @@ const handlePublishToTelegram = async (event) => {
   if (!confirmed) return
 
   try {
-    await eventService.postEventToTelegram(event.eventId)
+    // Robustly get the ID
+    const id = event.eventId || event.EventId || event.id;
+    if (!id) throw new Error("Event ID not found");
+    await eventService.postEventToTelegram(id)
     displayError('Event posted to Telegram successfully!', 'Success', 'success')
   } catch (err) {
     displayError(err, 'Failed to post to Telegram')

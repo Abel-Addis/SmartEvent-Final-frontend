@@ -8,7 +8,7 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 60000, // 10 seconds timeout
+  timeout: 60000, // 1 min timeout
 });
 
 // Request interceptor to add auth token

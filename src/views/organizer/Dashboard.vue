@@ -145,12 +145,6 @@
         <h4 class="font-semibold text-foreground mb-1">View Analytics</h4>
         <p class="text-xs text-muted-foreground">Track performance</p>
       </router-link>
-      <!-- <router-link to="/organizer/finance"
-        class="card hover:shadow-md transition-shadow text-center p-6 cursor-pointer hover:border-foreground/20">
-        <div class="text-3xl mb-3">💰</div>
-        <h4 class="font-semibold text-foreground mb-1">Manage Finance</h4>
-        <p class="text-xs text-muted-foreground">View revenue</p>
-      </router-link> -->
     </div>
 
     <!-- Error Notification -->
