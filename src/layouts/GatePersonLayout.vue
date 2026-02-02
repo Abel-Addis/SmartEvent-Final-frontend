@@ -88,6 +88,18 @@
                 </div>
             </div>
         </main>
+
+        <!-- Confirmation Modal -->
+        <ConfirmationModal
+            :show="showConfirm"
+            :title="confirmTitle"
+            :message="confirmMessage"
+            :type="confirmType"
+            :confirm-text="confirmButtonText"
+            :loading="confirmLoading"
+            @confirm="onConfirm"
+            @cancel="onCancel"
+        />
     </div>
 </template>
 
@@ -97,10 +109,13 @@ import { useRouter } from 'vue-router'
 import { gatePersonService } from '../services/gatePersonService'
 import NavItem from '../components/NavItem.vue'
 import ThemeToggle from '../components/ThemeToggle.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useConfirmation } from '@/composables/useConfirmation'
 
 const router = useRouter()
 const userInfo = ref(null)
 const mobileMenuOpen = ref(false)
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
 
 const userInitial = computed(() => {
     return userInfo.value?.fullName?.charAt(0).toUpperCase() || 'G'
@@ -115,9 +130,18 @@ onMounted(async () => {
     }
 })
 
-const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('userRole')
-    router.push('/login')
+const handleLogout = async () => {
+    const confirmed = await askConfirmation({
+        title: 'Logout',
+        message: 'Are you sure you want to log out?',
+        confirmText: 'Logout',
+        type: 'warning'
+    })
+
+    if (confirmed) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('userRole')
+        router.push('/login')
+    }
 }
 </script>

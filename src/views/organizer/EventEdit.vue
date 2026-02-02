@@ -50,8 +50,11 @@
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium mb-2">Location</label>
-                        <input v-model="formData.location" type="text" class="input-field w-full" :disabled="saving">
+                        <label class="block text-sm font-medium mb-2">Location (Map)</label>
+                        <MapLocationPicker v-model="formData.location" />
+                        <p class="text-xs text-muted-foreground mt-1">
+                            Click on the map to select the event location. Coordinates will be saved automatically.
+                        </p>
                     </div>
                 </div>
 
@@ -358,6 +361,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { eventService } from '@/services/eventService'
+import MapLocationPicker from '@/components/MapLocationPicker.vue'
 import ErrorNotification from '@/components/ErrorNotification.vue'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import { useErrorNotification } from '@/composables/useErrorNotification'

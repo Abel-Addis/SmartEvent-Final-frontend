@@ -52,7 +52,7 @@
         
         <!-- Logout Button -->
         <button 
-          @click="authStore.logout()" 
+          @click="handleLogout" 
           class="btn-outline w-full py-2 text-sm text-muted-foreground hover:text-destructive hover:border-destructive/30" 
         >
           Logout
@@ -114,6 +114,18 @@
         </router-view>
       </div>
     </main>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirm"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :type="confirmType"
+      :confirm-text="confirmButtonText"
+      :loading="confirmLoading"
+      @confirm="onConfirm"
+      @cancel="onCancel"
+    />
   </div>
 </template>
 
@@ -121,12 +133,28 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import NavItem from '@/components/NavItem.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { useConfirmation } from '@/composables/useConfirmation'
 
 const mobileMenuOpen = ref(false)
 const authStore = useAuthStore()
 const notificationStore = useNotificationStore()
+const { showConfirm, confirmTitle, confirmMessage, confirmType, confirmLoading, confirmButtonText, askConfirmation, onConfirm, onCancel } = useConfirmation()
+
+const handleLogout = async () => {
+  const confirmed = await askConfirmation({
+    title: 'Logout',
+    message: 'Are you sure you want to log out?',
+    confirmText: 'Logout',
+    type: 'warning'
+  })
+  
+  if (confirmed) {
+    authStore.logout()
+  }
+}
 
 onMounted(() => {
   if (authStore.user) {

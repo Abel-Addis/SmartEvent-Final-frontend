@@ -97,6 +97,10 @@
                 <router-link :to="`/organizer/events/${event.eventId}/edit`" class="btn-outline text-xs px-3 py-1">
                   Edit
                 </router-link>
+                <button v-if="event.status === 'Published'" class="btn-outline text-xs px-3 py-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50 dark:text-indigo-400 dark:border-indigo-400/30"
+                  @click="handlePublishToTelegram(event)">
+                  Telegram
+                </button>
                 <button v-if="event.status === 'Draft'" class="btn-outline text-xs px-3 py-1 text-destructive hover:bg-destructive/10"
                   @click="handleDeleteDraft(event)">
                   Delete
@@ -299,6 +303,25 @@ const confirmPublish = async () => {
     displayError(err, 'Failed to publish event')
   } finally {
     publishing.value = false
+  }
+}
+
+// Publish to Telegram
+const handlePublishToTelegram = async (event) => {
+  const confirmed = await askConfirmation({
+    title: 'Publish to Telegram',
+    message: `Are you sure you want to share "${event.title}" on the Telegram channel? This will help reach a wider audience.`,
+    confirmText: 'Publish',
+    type: 'primary'
+  })
+
+  if (!confirmed) return
+
+  try {
+    await eventService.postEventToTelegram(event.eventId)
+    displayError('Event posted to Telegram successfully!', 'Success', 'success')
+  } catch (err) {
+    displayError(err, 'Failed to post to Telegram')
   }
 }
 
