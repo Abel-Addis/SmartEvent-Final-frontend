@@ -233,6 +233,7 @@ const scanMode = ref('manual') // 'manual' or 'camera'
 const cameraActive = ref(false)
 const processingScan = ref(false)
 const lastScanTime = ref(0)
+const lastScannedCode = ref('')
 const SCAN_COOLDOWN = 2000
 let html5QrCode = null
 
@@ -297,13 +298,17 @@ const startCamera = async () => {
                 qrbox: { width: 250, height: 250 }
             },
             (decodedText) => {
-                // Prevent duplicate/rapid scans
+                // 1. Check if it's the same code as before (ignore duplicates)
+                if (decodedText === lastScannedCode.value) return
+
+                // 2. Prevent rapid scans (cooldown)
                 const now = Date.now()
                 if (processingScan.value || (now - lastScanTime.value < SCAN_COOLDOWN)) {
                     return
                 }
 
                 // QR code successfully scanned
+                lastScannedCode.value = decodedText
                 qrCodeInput.value = decodedText
                 handleScan()
             },
@@ -369,6 +374,7 @@ const handleScan = async () => {
         }, 10000)
     } catch (error) {
         lastScanTime.value = Date.now() // Update cooldown even on error
+        lastScannedCode.value = '' // Allow retrying the same code if there was an error
         scanResult.value = {
             isValid: false,
             message: error.response?.data?.message || 'Scan failed. Please try again.'
