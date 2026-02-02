@@ -27,7 +27,11 @@ export function useErrorNotification() {
     } else if (error?.response?.data) {
       // Axios error response
       const data = error.response.data;
-      errorMessage.value = data.error || data.message || "An error occurred";
+      if (typeof data === "string") {
+        errorMessage.value = data;
+      } else {
+        errorMessage.value = data.error || data.message || "An error occurred";
+      }
       errorDetail.value = data.detail || null;
       errorStatusCode.value = data.statusCode || error.response.status || null;
     } else if (error?.error) {

@@ -68,7 +68,7 @@ export const useEventStore = defineStore("event", () => {
     try {
       const response = await eventService.addPricingRule(
         ticketTypeId,
-        ruleData
+        ruleData,
       );
       return { success: true, rule: response };
     } catch (err) {
@@ -169,11 +169,18 @@ export const useEventStore = defineStore("event", () => {
       const response = await eventService.postEventToTelegram(eventId);
       return { success: true, message: response };
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.error ||
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to post event to Telegram";
+      let errorMessage = "Failed to post event to Telegram";
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === "string") {
+          errorMessage = err.response.data;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
       error.value = errorMessage;
       return { success: false, message: errorMessage };
     } finally {
