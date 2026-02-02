@@ -231,6 +231,9 @@ const scanning = ref(false)
 const scanResult = ref(null)
 const scanMode = ref('manual') // 'manual' or 'camera'
 const cameraActive = ref(false)
+const processingScan = ref(false)
+const lastScanTime = ref(0)
+const SCAN_COOLDOWN = 2000
 let html5QrCode = null
 
 const todayScansCount = computed(() => {
@@ -294,11 +297,15 @@ const startCamera = async () => {
                 qrbox: { width: 250, height: 250 }
             },
             (decodedText) => {
+                // Prevent duplicate/rapid scans
+                const now = Date.now()
+                if (processingScan.value || (now - lastScanTime.value < SCAN_COOLDOWN)) {
+                    return
+                }
+
                 // QR code successfully scanned
                 qrCodeInput.value = decodedText
                 handleScan()
-                // Optionally stop camera after successful scan
-                // stopCamera()
             },
             (errorMessage) => {
                 // Scan error (can be ignored, happens frequently)
@@ -325,7 +332,15 @@ const stopCamera = async () => {
 const handleScan = async () => {
     if (!qrCodeInput.value.trim()) return
 
+    // Prevent concurrent scans or rapid fire
+    if (processingScan.value) return
+    
+    // Check cooldown for manual triggers too
+    const now = Date.now()
+    if (now - lastScanTime.value < SCAN_COOLDOWN) return
+
     scanning.value = true
+    processingScan.value = true
     scanResult.value = null
 
     try {
@@ -334,6 +349,7 @@ const handleScan = async () => {
         })
 
         scanResult.value = result
+        lastScanTime.value = Date.now() // Update cooldown timestamp
         
         if (result.isValid) {
             displayError(result.message || 'Ticket scan successful!', 'Success', 'success')
@@ -352,6 +368,7 @@ const handleScan = async () => {
             scanResult.value = null
         }, 10000)
     } catch (error) {
+        lastScanTime.value = Date.now() // Update cooldown even on error
         scanResult.value = {
             isValid: false,
             message: error.response?.data?.message || 'Scan failed. Please try again.'
@@ -359,6 +376,10 @@ const handleScan = async () => {
         displayError(error, 'Scan Failed')
     } finally {
         scanning.value = false
+        // Short delay before releasing lock to ensure UI updates finish
+        setTimeout(() => {
+            processingScan.value = false
+        }, 500)
     }
 }
 

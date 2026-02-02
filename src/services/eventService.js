@@ -217,7 +217,7 @@ export const eventService = {
    */
   async postEventToTelegram(eventId) {
     const response = await apiClient.post(
-      `/events/post-event-Telgram/${eventId}`,
+      `/events/post-event-Telegram/${eventId}`,
     );
     return response.data;
   },
