@@ -149,39 +149,81 @@
                 No scans yet
             </div>
 
-            <div v-else class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="border-b border-border">
-                        <tr class="text-left">
-                            <th class="pb-3 font-semibold">Time</th>
-                            <th class="pb-3 font-semibold">Event</th>
-                            <th class="pb-3 font-semibold">Ticket Holder</th>
-                            <th class="pb-3 font-semibold">Ticket Type</th>
-                            <th class="pb-3 font-semibold">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="scan in recentScans" :key="scan.id" class="border-b border-border last:border-0">
-                            <td class="py-3 text-sm">{{ formatDateTime(scan.scannedAt) }}</td>
-                            <td class="py-3 text-sm">{{ scan.eventName }}</td>
-                            <td class="py-3 text-sm">
-                                <div>{{ scan.ticketHolderName }}</div>
-                                <div class="text-xs text-muted-foreground">{{ scan.ticketHolderEmail }}</div>
-                            </td>
-                            <td class="py-3 text-sm">{{ scan.ticketTypeName }}</td>
-                            <td class="py-3">
-                                <span :class="[
-                                    'px-2 py-1 rounded-full text-xs font-medium',
-                                    scan.isValid
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
-                                ]">
-                                    {{ scan.isValid ? 'Valid' : scan.reason }}
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div v-else>
+                <!-- Desktop Table -->
+                <div class="hidden sm:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="border-b border-border">
+                            <tr class="text-left">
+                                <th class="pb-3 font-semibold">Time</th>
+                                <th class="pb-3 font-semibold">Event</th>
+                                <th class="pb-3 font-semibold">Ticket Holder</th>
+                                <th class="pb-3 font-semibold">Ticket Type</th>
+                                <th class="pb-3 font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="scan in recentScans" :key="scan.id" class="border-b border-border last:border-0 bg-card/50 hover:bg-muted/30 transition-colors">
+                                <td class="py-3 text-sm">{{ formatDateTime(scan.scannedAt) }}</td>
+                                <td class="py-3 text-sm font-medium">{{ scan.eventName }}</td>
+                                <td class="py-3 text-sm">
+                                    <div class="font-medium">{{ scan.ticketHolderName }}</div>
+                                    <div class="text-xs text-muted-foreground">{{ scan.ticketHolderEmail }}</div>
+                                </td>
+                                <td class="py-3 text-sm">{{ scan.ticketTypeName }}</td>
+                                <td class="py-3">
+                                    <span :class="[
+                                        'px-2 py-1 rounded-full text-xs font-medium border',
+                                        scan.isValid
+                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
+                                            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+                                    ]">
+                                        {{ scan.isValid ? 'Valid' : (scan.reason || 'Invalid') }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Card Layout -->
+                <div class="sm:hidden space-y-4">
+                    <div v-for="scan in recentScans" :key="scan.id" class="p-4 rounded-xl border border-border bg-card shadow-sm">
+                        <!-- Header with Status -->
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <div class="text-xs text-muted-foreground mb-1">{{ formatDateTime(scan.scannedAt) }}</div>
+                                <h4 class="font-semibold text-sm line-clamp-1">{{ scan.eventName }}</h4>
+                            </div>
+                            <span :class="[
+                                'px-2 py-1 rounded-full text-xs font-medium border flex-shrink-0 ml-2',
+                                scan.isValid
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
+                                    : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+                            ]">
+                                {{ scan.isValid ? 'Valid' : 'Invalid' }}
+                            </span>
+                        </div>
+                        
+                        <!-- Details -->
+                        <div class="space-y-3 pt-3 border-t border-border/50">
+                           <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Ticket Holder</span>
+                                    <div class="font-medium text-sm mt-0.5">{{ scan.ticketHolderName }}</div>
+                                </div>
+                                <div>
+                                     <span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Type</span>
+                                    <div class="text-sm mt-0.5">{{ scan.ticketTypeName }}</div>
+                                </div>
+                           </div>
+
+                             <div v-if="!scan.isValid && scan.reason" class="text-xs p-2 rounded bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-800/30">
+                                ⚠️ {{ scan.reason }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

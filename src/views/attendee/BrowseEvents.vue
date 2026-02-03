@@ -38,17 +38,12 @@
               <option value="">
                 All Categories
               </option>
-              <option value="music">
-                Music
-              </option>
-              <option value="sports">
-                Sports
-              </option>
-              <option value="tech">
-                Tech
-              </option>
-              <option value="business">
-                Business
+              <option 
+                v-for="cat in categories" 
+                :key="cat.id" 
+                :value="cat.name"
+              >
+                {{ cat.name }}
               </option>
             </select>
           </div>
@@ -146,6 +141,7 @@
 import { ref, watch, onMounted } from 'vue'
 import EventCard from '@/components/EventCard.vue'
 import { attendeeService } from '@/services/attendeeService'
+import { eventService } from '@/services/eventService'
 import ErrorNotification from '@/components/ErrorNotification.vue'
 import { useErrorNotification } from '@/composables/useErrorNotification'
 
@@ -159,12 +155,24 @@ const selectedDate = ref('')
 const selectedLocation = ref('')
 
 const events = ref([])
+const categories = ref([])
 const loading = ref(false)
 let debounceTimer = null
 
 onMounted(() => {
+  fetchCategories()
   fetchEvents()
 })
+
+const fetchCategories = async () => {
+  try {
+    const result = await eventService.getCategories()
+    categories.value = result || []
+  } catch (err) {
+    console.error('Failed to load categories', err)
+  }
+}
+
 
 const fetchEvents = async () => {
   loading.value = true
