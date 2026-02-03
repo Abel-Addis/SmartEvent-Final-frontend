@@ -25,7 +25,7 @@
       <!-- Key Metrics -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <stat-card label="Total Events" :value="overview.totalEvents.toString()" icon="📅" :trend="'0'" />
-        <stat-card label="Total Revenue" :value="`$${formatNumber(overview.totalRevenue)}`" icon="💰" :trend="'0'" />
+        <stat-card label="Total Revenue" :value="`ETB ${formatNumber(overview.totalRevenue)}`" icon="💰" :trend="'0'" />
         <stat-card label="Tickets Sold" :value="overview.totalTicketsSold.toString()" icon="🎫" :trend="'0'" />
         <stat-card label="Total Bookings" :value="overview.totalBookings.toString()" icon="👥" :trend="'0'" />
       </div>
@@ -479,7 +479,7 @@ const dailySalesChartData = computed(() => {
         tension: 0.4
       },
       {
-        label: 'Revenue ($)',
+        label: 'Revenue (ETB)',
         data: sortedSales.map(item => item.revenue),
         borderColor: colors.secondary,
         backgroundColor: colors.secondaryLight,
@@ -522,7 +522,7 @@ const revenueBreakdownChartData = computed(() => {
     }),
     datasets: [
       {
-        label: 'Revenue ($)',
+        label: 'Revenue (ETB)',
         data: sortedEvents.map(item => item.revenue),
         backgroundColor: barColors.slice(0, sortedEvents.length),
         borderColor: colors.grid,
